@@ -66,15 +66,15 @@ CREATE TABLE IF NOT EXISTS reservations (
 
 -- Default admin user (password: admin)
 INSERT INTO users (username, password, role) VALUES
-('admin', '$2b$10$Pd2VsqfVMcvZtbVZtDpwJOxNje8bjCdQItZRg6m4pPyNriolM/hN6', 'admin');
+('admin', '$2b$10$Zhv/fbNX4LXkPEc1kgYJueiGMdjCtgaaV0mfiy9vc4iWDHtAmRx4q', 'admin');
 
 -- Second admin user (password: admin2)
 INSERT INTO users (username, password, role) VALUES
-('admin2', '$2b$10$qdbMbKo5HSrhgpUVJ8.OV.Wj5IT9BZ5YH6aZ.cVDc6uQfwXxMaHDu', 'admin');
+('admin2', '$2b$10$873rzshKO4jHXNK.1hm8MuOkzWHzIibNESZgV2iQhQwV1jma1GiUe', 'admin');
 
 -- Default reception user (password: user1)
 INSERT INTO users (username, password, role) VALUES
-('user1', '$2b$10$bqKOS0ZmfSz/zWQlqDGCtuEDFW6wLiz//pF9eaFx7.wO/rPqoTCQu', 'reception');
+('user1', '$2b$10$b3Hhs2UrHma48YsHAs3dOORmgs46Tlb4rxTqD9JDIL3x2ertlF4YG', 'reception');
 
 -- Sample rooms
 INSERT INTO rooms (room_number, room_type, price, status, description) VALUES
