@@ -1,235 +1,129 @@
-Hotel Room Reservation Management System
-System Requirements Specification (SRS)
-1. Introduction
-Project Title
+# LuxeStay - Hotel Room Reservation Management System
 
-Hotel Room Reservation Management System
+LuxeStay is a comprehensive, full-stack Hotel Room Reservation Management System designed to automate the hotel reservation process. It allows customers to easily browse and reserve rooms online, while empowering hotel staff (Admins and Receptionists) to seamlessly manage rooms, customers, bookings, check-ins, payments, and generate insightful reports.
 
-Purpose
+This project was built to completely fulfill the System Requirements Specification (SRS) for a standard modern hotel reservation platform.
 
-The purpose of this system is to automate the hotel reservation process by allowing customers to reserve rooms online and enabling hotel staff to manage rooms, customers, bookings, payments, and reports efficiently.
+## Features
 
-2. Objectives
-Reduce manual paperwork
-Improve reservation accuracy
-Prevent double booking
-Manage room availability
-Track customer information
-Generate reports
-Improve customer experience
-3. Users of the System
-1. Administrator
+### 🏢 Administrator Module
+- **Dashboard Overview:** View top-level hotel analytics.
+- **User Management:** Create, edit, and remove system users (Receptionists, other Admins, or Customers).
+- **Room Management:** Add, update, and delete rooms. Set room prices, status (Available, Occupied, Maintenance), and upload room images directly.
+- **Reports:** Generate daily/monthly reservation reports, revenue reports, and occupancy statistics.
 
-Responsibilities:
+### 🛎️ Receptionist Module
+- **Check-In / Check-Out:** Verify reservations, check guests into their assigned rooms, process check-outs, generate final bills, and record payment methods (Cash/Card/Online).
+- **Customer Management:** View, search, add, edit, and delete customer profiles directly from the desk.
+- **Reservation Management:** Create reservations for walk-in guests or callers, modify bookings, and handle cancellations.
 
-Manage users
-Manage rooms
-View reports
-Manage reservations
-Manage payments
-2. Receptionist
+### 👤 Customer Module
+- **Browse & Book:** Search available rooms for specific dates, view room details, and book securely.
+- **My Bookings:** View past and upcoming reservations, and cancel pending/confirmed bookings.
+- **Profile Management:** Update personal information and change passwords securely.
 
-Responsibilities:
+## Tech Stack
 
-Register customers
-Book rooms
-Check-in guests
-Check-out guests
-View room availability
-3. Customer
+**Frontend:**
+- React (Vite)
+- React Router DOM
+- Context API (for State/Auth Management)
+- CSS (Vanilla, highly customized for a premium UI)
+- Lucide React (Icons)
+- React Hot Toast (Notifications)
 
-Responsibilities:
+**Backend:**
+- Node.js & Express.js
+- MySQL (with `mysql2/promise`)
+- JSON Web Tokens (JWT) for authentication
+- bcryptjs for password hashing
+- Multer (for handling room image uploads)
 
-Register account
-Login
-Search rooms
-Reserve room
-Cancel reservation
-View booking history
-4. Functional Requirements
-User Management
+## Project Structure
 
-The system shall allow:
-
-User Registration
-User Login
-Logout
-Password Reset
-User Profile Management
-Room Management
-
-Administrator can:
-
-Add room
-Edit room
-Delete room
-Change room status
-Upload room images
-Set room prices
-
-Room Status:
-
-Available
-Reserved
-Occupied
-Under Maintenance
-Reservation Management
-
-Customer can:
-
-Search rooms
-View room details
-Select dates
-Book room
-Cancel booking
-
-Receptionist can:
-
-Create reservations
-Modify reservations
-Cancel reservations
-Availability Checking
-
-System shall:
-
-Check available rooms
-Prevent double booking
-Display unavailable dates
-Customer Management
-
-Receptionist can:
-
-Add customer
-Edit customer
-Search customer
-Delete customer
-Check-In Module
-
-Receptionist can:
-
-Verify reservation
-Assign room
-Change room status to Occupied
-Check-Out Module
-
-Receptionist can:
-
-Generate final bill
-Receive payment
-Update room status to Available
-Payment Module
-
-System shall support:
-
-Cash
-Card
-Online Payment (optional)
-
-Generate:
-
-Payment receipt
-Invoice
-Report Module
-
-Administrator can generate:
-
-Daily Reservations
-Monthly Reservations
-Revenue Report
-Occupancy Report
-Customer Report
-5. Non-Functional Requirements
-Performance
-Response time less than 3 seconds
-Support multiple users simultaneously
-Security
-Secure login
-Password encryption
-Role-based access
-Session timeout
-Reliability
-Automatic database backup
-Data recovery
-Error handling
-Usability
-Easy-to-use interface
-Responsive design
-Simple navigation
-Availability
-System available 24/7
-6. Inputs
-Customer details
-Room details
-Reservation details
-Payment details
-Check-in information
-Check-out information
-7. Outputs
-Reservation Confirmation
-Invoice
-Payment Receipt
-Room Availability List
-Daily Report
-Monthly Revenue Report
-8. Business Rules
-One room cannot be booked by multiple customers for overlapping dates.
-Check-out date must be after check-in date.
-Customer must be registered before booking.
-Room must be available before reservation.
-Only administrators can delete rooms.
-Payments must be completed before check-out.
-9. System Modules
-Hotel Room Reservation Management System
-
+```
+Hotel-Reservation-System/
 │
-├── User Management
-│     ├── Login
-│     ├── Register
-│     └── Roles
+├── backend/                  # Node.js Express Server
+│   ├── config/               # Database connection
+│   ├── middleware/           # Auth and Role guards
+│   ├── public/uploads/       # Uploaded room images
+│   ├── routes/               # Express API routes
+│   ├── database.sql          # SQL Schema & Seed Data
+│   └── server.js             # Entry point
 │
-├── Room Management
-│     ├── Add Room
-│     ├── Edit Room
-│     ├── Delete Room
-│     └── View Rooms
-│
-├── Reservation Management
-│     ├── Search Room
-│     ├── Book Room
-│     ├── Cancel Booking
-│     └── Reservation History
-│
-├── Customer Management
-│
-├── Payment Management
-│
-├── Check-In / Check-Out
-│
-└── Reports
-      ├── Revenue
-      ├── Reservations
-      ├── Occupancy
-      └── Customers
-10. Use Case Diagram (Text Version)
-                +------------------+
-                |    Customer      |
-                +------------------+
-                  | Login
-                  | Search Rooms
-                  | Book Room
-                  | Cancel Booking
-                  | View Booking
-                        |
-                        |
-                -------------------
-                        |
-                Hotel Reservation System
-                        |
-    ---------------------------------------------
-    |                    |                       |
-Administrator      Receptionist            Customer
-    |                    |                   |
-Manage Rooms        Register Customer      Search Room
-Manage Users        Make Reservation       Book Room
-View Reports        Check-in Guest         Cancel Booking
-Manage Payments     Check-out Guest        View History
+└── frontend/                 # React Application
+    ├── public/
+    ├── src/
+    │   ├── api/              # Axios instance configuration
+    │   ├── components/       # Reusable UI components (Sidebar, Layout, UI Elements)
+    │   ├── context/          # Auth context
+    │   ├── pages/            # Page Views (Admin, Reception, Customer, Auth)
+    │   ├── App.jsx           # App Routing
+    │   └── index.css         # Global Styles & Design System
+    └── vite.config.js
+```
+
+## Getting Started
+
+### Prerequisites
+- Node.js (v16+)
+- MySQL Server
+
+### 1. Database Setup
+1. Open your MySQL client.
+2. Run the SQL script located at `backend/database.sql`. This will create the database `hotel_reservation`, setup all necessary tables, and insert seed data (including initial admin/reception accounts and sample rooms).
+
+### 2. Backend Setup
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Create a `.env` file in the `backend` directory (if not present) with the following structure:
+   ```env
+   PORT=3001
+   DB_HOST=localhost
+   DB_USER=root
+   DB_PASSWORD=your_mysql_password
+   DB_NAME=hotel_reservation
+   JWT_SECRET=your_super_secret_jwt_key
+   JWT_EXPIRES_IN=7d
+   ```
+4. Start the backend server:
+   ```bash
+   npm run dev
+   ```
+
+### 3. Frontend Setup
+1. Open a new terminal and navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+
+## Default Seed Accounts
+
+The `database.sql` script creates a few default accounts to help you get started:
+
+- **Admin Account:**
+  - Username: `admin`
+  - Password: `admin`
+- **Reception Account:**
+  - Username: `user1`
+  - Password: `user1`
+
+You can use these credentials to log in immediately after setup. Customer accounts can be created from the Registration page.
+
+## Compliance with SRS
+This system was built to adhere directly to all Functional and Non-Functional requirements specified, including prevention of double booking, secure password encryption, role-based access, and all specified user, room, and reservation management modules.
