@@ -5,31 +5,40 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import Layout from './components/Layout';
 
 // Auth Pages
-import Login from './pages/Login';
+import Login    from './pages/Login';
 import Register from './pages/Register';
 
 // Admin Pages
-import AdminDashboard from './pages/admin/Dashboard';
-import RoomManagement from './pages/admin/RoomManagement';
+import AdminDashboard    from './pages/admin/Dashboard';
+import RoomManagement    from './pages/admin/RoomManagement';
 import AdminReservations from './pages/admin/Reservations';
-import Reports from './pages/admin/Reports';
-import UserManagement from './pages/admin/UserManagement';
+import Reports           from './pages/admin/Reports';
+import UserManagement    from './pages/admin/UserManagement';
+import PricingRules      from './pages/admin/PricingRules';
+import AttendanceAdmin   from './pages/admin/AttendanceAdmin';
+import ReviewsAdmin      from './pages/admin/ReviewsAdmin';
 
 // Reception Pages
-import ReceptionDashboard from './pages/reception/Dashboard';
+import ReceptionDashboard  from './pages/reception/Dashboard';
 import ReceptionReservations from './pages/reception/Reservations';
-import CreateReservation from './pages/reception/CreateReservation';
-import CheckIn from './pages/reception/CheckIn';
-import CheckOut from './pages/reception/CheckOut';
-import SearchBookings from './pages/reception/SearchBookings';
-import CustomerManagement from './pages/reception/CustomerManagement';
+import CreateReservation   from './pages/reception/CreateReservation';
+import CheckIn             from './pages/reception/CheckIn';
+import CheckOut            from './pages/reception/CheckOut';
+import SearchBookings      from './pages/reception/SearchBookings';
+import CustomerManagement  from './pages/reception/CustomerManagement';
 
 // Customer Pages
 import CustomerHome from './pages/customer/Home';
-import BrowseRooms from './pages/customer/BrowseRooms';
-import BookRoom from './pages/customer/BookRoom';
-import MyBookings from './pages/customer/MyBookings';
-import Profile from './pages/customer/Profile';
+import BrowseRooms  from './pages/customer/BrowseRooms';
+import BookRoom     from './pages/customer/BookRoom';
+import MyBookings   from './pages/customer/MyBookings';
+import Profile      from './pages/customer/Profile';
+import Reviews      from './pages/customer/Reviews';
+
+// Shared (Multi-role) Pages
+import AvailabilityCalendar from './pages/shared/AvailabilityCalendar';
+import Attendance           from './pages/shared/Attendance';
+import Housekeeping         from './pages/shared/Housekeeping';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -59,6 +68,11 @@ function AppRoutes() {
         <Route path="rooms"        element={<RoomManagement />} />
         <Route path="reservations" element={<AdminReservations />} />
         <Route path="reports"      element={<Reports />} />
+        <Route path="pricing"      element={<PricingRules />} />
+        <Route path="attendance"   element={<AttendanceAdmin />} />
+        <Route path="housekeeping" element={<Housekeeping />} />
+        <Route path="reviews"      element={<ReviewsAdmin />} />
+        <Route path="calendar"     element={<AvailabilityCalendar />} />
       </Route>
 
       {/* Reception */}
@@ -75,6 +89,9 @@ function AppRoutes() {
         <Route path="checkout"           element={<CheckOut />} />
         <Route path="search"             element={<SearchBookings />} />
         <Route path="reports"            element={<Reports />} />
+        <Route path="housekeeping"       element={<Housekeeping />} />
+        <Route path="attendance"         element={<Attendance />} />
+        <Route path="calendar"           element={<AvailabilityCalendar />} />
       </Route>
 
       {/* Customer */}
@@ -88,6 +105,7 @@ function AppRoutes() {
         <Route path="book"     element={<BookRoom />} />
         <Route path="bookings" element={<MyBookings />} />
         <Route path="profile"  element={<Profile />} />
+        <Route path="reviews"  element={<Reviews />} />
       </Route>
 
       {/* Fallback */}
@@ -105,13 +123,13 @@ export default function App() {
           position="top-right"
           toastOptions={{
             style: {
-              background: '#1a2235',
-              color: '#f0f2f8',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-text)',
+              border: '1px solid var(--color-border)',
               borderRadius: '10px',
             },
-            success: { iconTheme: { primary: '#10b981', secondary: '#1a2235' } },
-            error:   { iconTheme: { primary: '#ef4444', secondary: '#1a2235' } },
+            success: { iconTheme: { primary: '#10b981', secondary: 'var(--color-surface)' } },
+            error:   { iconTheme: { primary: '#ef4444', secondary: 'var(--color-surface)' } },
           }}
         />
       </BrowserRouter>

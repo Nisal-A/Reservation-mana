@@ -9,6 +9,13 @@ const reportRoutes = require('./routes/reports');
 const usersRoutes = require('./routes/users');
 const customersRoutes = require('./routes/customers');
 const uploadRoutes = require('./routes/upload');
+const calendarRoutes = require('./routes/calendar');
+const { router: pricingRoutes } = require('./routes/pricing');
+const analyticsRoutes = require('./routes/analytics');
+const attendanceRoutes = require('./routes/attendance');
+const housekeepingRoutes = require('./routes/housekeeping');
+const reviewsRoutes = require('./routes/reviews');
+const exportRoutes = require('./routes/export');
 const path = require('path');
 
 const app = express();
@@ -21,17 +28,26 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded images statically
+// Serve uploaded images statically (room images + review images)
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/rooms', roomRoutes);
+// ─── Existing Routes ──────────────────────────────────────────────────────────
+app.use('/api/auth',         authRoutes);
+app.use('/api/rooms',        roomRoutes);
 app.use('/api/reservations', reservationRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/customers', customersRoutes);
-app.use('/api/upload', uploadRoutes);
+app.use('/api/reports',      reportRoutes);
+app.use('/api/users',        usersRoutes);
+app.use('/api/customers',    customersRoutes);
+app.use('/api/upload',       uploadRoutes);
+
+// ─── Enterprise Routes ────────────────────────────────────────────────────────
+app.use('/api/calendar',     calendarRoutes);
+app.use('/api/pricing',      pricingRoutes);
+app.use('/api/analytics',    analyticsRoutes);
+app.use('/api/attendance',   attendanceRoutes);
+app.use('/api/housekeeping', housekeepingRoutes);
+app.use('/api/reviews',      reviewsRoutes);
+app.use('/api/export',       exportRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

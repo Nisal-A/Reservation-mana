@@ -600,3 +600,377 @@ img { max-width: 100%; display: block; }
 .alert-success { background: var(--color-success-bg); color: var(--color-success); border: 1px solid rgba(16,185,129,0.25); }
 .alert-warning { background: var(--color-warning-bg); color: var(--color-warning); border: 1px solid rgba(245,158,11,0.25); }
 .alert-info    { background: var(--color-info-bg);    color: var(--color-info);    border: 1px solid rgba(59,130,246,0.25); }
+
+/* ============================================================
+   DARK MODE — Default (already defined in :root above)
+   LIGHT MODE — Override block
+   ============================================================ */
+[data-theme="light"] {
+  --color-bg:           #f0f2f8;
+  --color-surface:      #ffffff;
+  --color-surface-2:    #eef0f6;
+  --color-border:       rgba(0, 0, 0, 0.10);
+  --color-border-hover: rgba(0, 0, 0, 0.20);
+
+  --color-text:         #0f172a;
+  --color-text-muted:   #475569;
+  --color-text-faint:   #94a3b8;
+
+  --color-gold:         #b8860b;
+  --color-gold-light:   #d4a843;
+  --color-gold-dark:    #8b6914;
+  --color-gold-glow:    rgba(184,134,11,0.12);
+
+  --gradient-gold:      linear-gradient(135deg, #d4a843 0%, #f0c060 50%, #b8902a 100%);
+  --gradient-surface:   linear-gradient(135deg, #ffffff 0%, #f8f9fc 100%);
+  --gradient-hero:      linear-gradient(135deg, #eef0f6 0%, #e2e8f0 50%, #dbeafe 100%);
+
+  --color-success-bg:   rgba(16, 185, 129, 0.08);
+  --color-warning-bg:   rgba(245, 158, 11, 0.08);
+  --color-error-bg:     rgba(239, 68, 68, 0.08);
+  --color-info-bg:      rgba(59, 130, 246, 0.08);
+
+  --shadow-sm:          0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md:          0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg:          0 8px 32px rgba(0,0,0,0.12);
+  --shadow-gold:        0 4px 24px rgba(184,134,11,0.18);
+}
+
+/* ============================================================
+   THEME TOGGLE BUTTON
+   ============================================================ */
+.theme-toggle {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: 8px 12px; border-radius: var(--radius-md);
+  background: var(--color-surface-2); border: 1px solid var(--color-border);
+  color: var(--color-text-muted); font-size: 0.78rem; font-weight: 600;
+  cursor: pointer; transition: var(--transition); width: 100%;
+}
+.theme-toggle:hover { border-color: var(--color-gold); color: var(--color-gold); }
+.theme-toggle-label { text-transform: capitalize; }
+
+/* ============================================================
+   AVAILABILITY CALENDAR
+   ============================================================ */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  background: var(--color-border);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.calendar-header-cell {
+  background: var(--color-surface-2);
+  padding: 10px 4px;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.calendar-cell {
+  background: var(--color-surface);
+  min-height: 80px;
+  padding: 6px;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.calendar-cell:hover { background: var(--color-surface-2); }
+.calendar-cell.outside-month { opacity: 0.3; cursor: default; }
+.calendar-cell.today { outline: 2px solid var(--color-gold); outline-offset: -2px; }
+.calendar-date-num {
+  font-size: 0.8rem; font-weight: 700;
+  color: var(--color-text-muted); margin-bottom: 4px;
+}
+.calendar-event {
+  font-size: 0.68rem; font-weight: 600;
+  padding: 2px 5px; border-radius: 3px;
+  margin-bottom: 2px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.cal-available  { background: rgba(16,185,129,0.18);  color: #10b981; }
+.cal-occupied   { background: rgba(239,68,68,0.18);   color: #ef4444; }
+.cal-reserved   { background: rgba(245,158,11,0.18);  color: #f59e0b; }
+.cal-maintenance{ background: rgba(148,163,184,0.18); color: #94a3b8; }
+.cal-dirty      { background: rgba(239,68,68,0.10);   color: #f87171; }
+.cal-cleaning   { background: rgba(59,130,246,0.18);  color: #3b82f6; }
+.cal-ready      { background: rgba(16,185,129,0.10);  color: #6ee7b7; }
+
+.calendar-room-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 700; font-size: 0.88rem;
+}
+.room-calendar-row {
+  display: flex; align-items: stretch;
+  border-bottom: 1px solid var(--color-border);
+}
+.room-label {
+  width: 110px; flex-shrink: 0;
+  padding: 8px 12px;
+  font-size: 0.8rem; font-weight: 600;
+  border-right: 1px solid var(--color-border);
+  display: flex; flex-direction: column; justify-content: center;
+}
+.room-days { display: flex; flex: 1; }
+.room-day-cell {
+  flex: 1; min-width: 28px;
+  padding: 6px 2px; text-align: center;
+  font-size: 0.72rem; font-weight: 600;
+  transition: var(--transition); cursor: default;
+  border-right: 1px solid var(--color-border);
+}
+.room-day-cell:last-child { border-right: none; }
+.room-day-cell:hover { filter: brightness(1.2); }
+.room-day-cell.day-available   { background: rgba(16,185,129,0.15);  color: #10b981; }
+.room-day-cell.day-occupied    { background: rgba(239,68,68,0.2);    color: #ef4444; }
+.room-day-cell.day-reserved    { background: rgba(245,158,11,0.2);   color: #f59e0b; }
+.room-day-cell.day-maintenance { background: rgba(148,163,184,0.15); color: #94a3b8; }
+.room-day-cell.day-dirty      { background: rgba(239,100,68,0.12);  color: #f87171; }
+.room-day-cell.day-cleaning   { background: rgba(59,130,246,0.15);  color: #3b82f6; }
+.room-day-cell.day-ready      { background: rgba(16,185,129,0.08);  color: #6ee7b7; }
+
+/* ============================================================
+   PRICING / BREAKDOWN CARD
+   ============================================================ */
+.price-breakdown-card {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-top: var(--space-4);
+}
+.price-breakdown-row {
+  display: flex; justify-content: space-between;
+  align-items: center; padding: 6px 0;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.price-breakdown-row:last-child { border-bottom: none; }
+.price-breakdown-total {
+  font-size: 1.1rem; font-weight: 800;
+  color: var(--color-gold);
+}
+.price-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.72rem; font-weight: 700; padding: 2px 8px;
+  border-radius: var(--radius-full); text-transform: uppercase;
+}
+.price-tag-surcharge { background: var(--color-error-bg); color: var(--color-error); }
+.price-tag-discount  { background: var(--color-success-bg); color: var(--color-success); }
+
+/* ============================================================
+   ATTENDANCE
+   ============================================================ */
+.attendance-clock-panel {
+  background: var(--gradient-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto var(--space-6);
+}
+.attendance-time-display {
+  font-size: 3rem; font-weight: 800;
+  color: var(--color-gold); letter-spacing: 2px;
+  margin: var(--space-4) 0;
+  font-variant-numeric: tabular-nums;
+}
+.attendance-date-display {
+  color: var(--color-text-muted);
+  font-size: 0.9rem; margin-bottom: var(--space-6);
+}
+.attendance-actions {
+  display: flex; gap: var(--space-3); justify-content: center;
+  flex-wrap: wrap;
+}
+.attendance-status-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: var(--radius-full);
+  font-size: 0.8rem; font-weight: 700;
+}
+.chip-present   { background: var(--color-success-bg); color: var(--color-success); }
+.chip-late      { background: var(--color-warning-bg); color: var(--color-warning); }
+.chip-absent    { background: var(--color-error-bg);   color: var(--color-error); }
+.chip-half_day  { background: var(--color-info-bg);    color: var(--color-info); }
+
+/* ============================================================
+   HOUSEKEEPING
+   ============================================================ */
+.hk-rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-4);
+}
+.hk-room-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  cursor: pointer;
+  transition: var(--transition-slow);
+  text-align: center;
+}
+.hk-room-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.hk-room-number {
+  font-size: 1.4rem; font-weight: 800;
+  color: var(--color-gold); margin-bottom: var(--space-2);
+}
+.hk-room-type {
+  font-size: 0.75rem; color: var(--color-text-muted);
+  margin-bottom: var(--space-3);
+}
+.hk-status-bar {
+  height: 4px; border-radius: 99px; margin-top: var(--space-3);
+  transition: var(--transition);
+}
+.hk-available   { border-color: rgba(16,185,129,0.3); }
+.hk-available .hk-status-bar { background: #10b981; }
+.hk-occupied    { border-color: rgba(239,68,68,0.3); }
+.hk-occupied .hk-status-bar  { background: #ef4444; }
+.hk-dirty       { border-color: rgba(239,100,68,0.4); }
+.hk-dirty .hk-status-bar     { background: #f97316; }
+.hk-cleaning    { border-color: rgba(59,130,246,0.3); }
+.hk-cleaning .hk-status-bar  { background: #3b82f6; }
+.hk-ready       { border-color: rgba(16,185,129,0.15); }
+.hk-ready .hk-status-bar     { background: #6ee7b7; }
+.hk-maintenance { border-color: rgba(148,163,184,0.3); }
+.hk-maintenance .hk-status-bar { background: #94a3b8; }
+
+/* Progress steps */
+.progress-steps {
+  display: flex; align-items: center; gap: 0;
+  margin: var(--space-6) 0;
+}
+.progress-step {
+  flex: 1; text-align: center; font-size: 0.75rem;
+  font-weight: 600; color: var(--color-text-faint);
+  position: relative;
+}
+.progress-step.active { color: var(--color-gold); }
+.progress-step.done   { color: var(--color-success); }
+.progress-step-dot {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--color-surface-2);
+  border: 2px solid var(--color-border);
+  margin: 0 auto var(--space-2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; transition: var(--transition);
+}
+.progress-step.active .progress-step-dot {
+  background: var(--color-gold); border-color: var(--color-gold); color: #0a0c14;
+}
+.progress-step.done .progress-step-dot {
+  background: var(--color-success); border-color: var(--color-success); color: #fff;
+}
+.progress-step-line {
+  position: absolute; top: 12px; left: 50%; width: 100%;
+  height: 2px; background: var(--color-border); z-index: -1;
+}
+.progress-step.done .progress-step-line { background: var(--color-success); }
+
+/* ============================================================
+   STAR RATING
+   ============================================================ */
+.star-rating {
+  display: flex; gap: 4px; align-items: center;
+}
+.star-rating .star {
+  cursor: pointer; font-size: 1.5rem;
+  color: var(--color-text-faint); transition: var(--transition);
+  user-select: none;
+}
+.star-rating .star.filled  { color: var(--color-gold); }
+.star-rating .star:hover   { transform: scale(1.1); }
+.star-display { display: flex; gap: 2px; align-items: center; }
+.star-display .star { font-size: 0.9rem; cursor: default; }
+
+/* ============================================================
+   REVIEW CARD
+   ============================================================ */
+.review-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  transition: var(--transition);
+}
+.review-card:hover { border-color: var(--color-border-hover); }
+.review-header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.reviewer-info { display: flex; align-items: center; gap: var(--space-3); }
+.reviewer-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--gradient-gold);
+  display: flex; align-items: center; justify-content: center;
+  color: #0a0c14; font-weight: 700; font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.review-text {
+  font-size: 0.9rem; color: var(--color-text-muted);
+  line-height: 1.6; margin-top: var(--space-2);
+}
+.review-image {
+  margin-top: var(--space-3); border-radius: var(--radius-md);
+  max-height: 200px; object-fit: cover;
+  border: 1px solid var(--color-border);
+}
+
+/* ============================================================
+   ANALYTICS GRID
+   ============================================================ */
+.analytics-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.analytics-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+@media (max-width: 1100px) {
+  .analytics-grid-3 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 768px) {
+  .analytics-grid-3,
+  .analytics-grid-2 { grid-template-columns: 1fr; }
+}
+
+/* Export button row */
+.export-btn-row {
+  display: flex; gap: var(--space-2); flex-wrap: wrap;
+  margin-top: var(--space-3);
+}
+
+/* Badge role overrides for light mode */
+[data-theme="light"] .badge-admin     { background: rgba(184,134,11,0.12); }
+[data-theme="light"] .badge-reception { background: var(--color-info-bg); }
+[data-theme="light"] .badge-customer  { background: rgba(139,92,246,0.10); }
+[data-theme="light"] .badge-cancelled { background: var(--color-surface-2); color: var(--color-text-muted); }
+
+/* Ensure chart tooltips work in light mode */
+[data-theme="light"] .recharts-tooltip-wrapper {
+  filter: none;
+}
+
+/* ============================================================
+   ADDITIONAL RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+  .analytics-grid-2 { grid-template-columns: 1fr; }
+  .room-days { overflow-x: auto; }
+}

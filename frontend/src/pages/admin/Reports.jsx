@@ -1,13 +1,25 @@
 import { useEffect, useState } from 'react';
-import { BarChart2, Download, TrendingUp } from 'lucide-react';
+import { BarChart2, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import api from '../../api/axios';
 import { PageLoader, PageHeader } from '../../components/UI';
+import toast from 'react-hot-toast';
 
 const COLORS = ['#d4a843', '#3b82f6', '#10b981', '#a78bfa', '#f59e0b'];
+
+async function downloadReport(endpoint, format, filename) {
+  try {
+    const resp = await api.get(`/export/${endpoint}?format=${format}`, { responseType: 'blob' });
+    const ext  = format === 'excel' ? 'xlsx' : format;
+    const url  = URL.createObjectURL(resp.data);
+    const a    = document.createElement('a'); a.href = url; a.download = `${filename}.${ext}`; a.click();
+    URL.revokeObjectURL(url);
+  } catch { toast.error('Export failed'); }
+}
+
 
 export default function Reports() {
   const [summary, setSummary]   = useState(null);
@@ -30,16 +42,6 @@ export default function Reports() {
     }).finally(() => setLoading(false));
   }, []);
 
-  const exportCSV = () => {
-    const headers = ['Room Number', 'Type', 'Price', 'Total Bookings', 'Total Revenue'];
-    const rows = rooms.map((r) => [r.room_number, r.room_type, r.price, r.total_bookings, r.total_revenue]);
-    const csvContent = [headers, ...rows].map((r) => r.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'room_report.csv'; a.click();
-    URL.revokeObjectURL(url);
-  };
-
   if (loading) return <PageLoader />;
 
   return (
@@ -48,9 +50,20 @@ export default function Reports() {
         title="Reports & Analytics"
         subtitle="Hotel performance insights"
         action={
-          <button className="btn btn-secondary" onClick={exportCSV}>
-            <Download size={16} /> Export CSV
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>EXPORT RESERVATIONS</div>
+            <div className="export-btn-row">
+              <button className="btn btn-secondary btn-sm" onClick={() => downloadReport('reservations','csv','reservations')}><Download size={13}/> CSV</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => downloadReport('reservations','excel','reservations')}><FileSpreadsheet size={13}/> Excel</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => downloadReport('reservations','pdf','reservations')}><FileText size={13}/> PDF</button>
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 4 }}>EXPORT ROOMS</div>
+            <div className="export-btn-row">
+              <button className="btn btn-secondary btn-sm" onClick={() => downloadReport('rooms','csv','rooms')}><Download size={13}/> CSV</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => downloadReport('rooms','excel','rooms')}><FileSpreadsheet size={13}/> Excel</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => downloadReport('rooms','pdf','rooms')}><FileText size={13}/> PDF</button>
+            </div>
+          </div>
         }
       />
 
