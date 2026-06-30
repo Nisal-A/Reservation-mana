@@ -2,7 +2,8 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, BedDouble, CalendarCheck, LogIn, LogOut,
-  Search, BarChart2, UserCheck, FileText, Home, BookOpen, History
+  Search, BarChart2, UserCheck, FileText, Home, BookOpen, History,
+  Users, UserCog
 } from 'lucide-react';
 
 const adminNav = [
@@ -10,6 +11,7 @@ const adminNav = [
     { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
   ]},
   { label: 'Management', items: [
+    { to: '/admin/users', icon: UserCog, label: 'User Management' },
     { to: '/admin/rooms', icon: BedDouble, label: 'Room Management' },
     { to: '/admin/reservations', icon: CalendarCheck, label: 'Reservations' },
   ]},
@@ -21,6 +23,7 @@ const adminNav = [
 const receptionNav = [
   { label: 'Operations', items: [
     { to: '/reception', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/reception/customers', icon: Users, label: 'Customers' },
     { to: '/reception/reservations', icon: CalendarCheck, label: 'Reservations' },
     { to: '/reception/create-reservation', icon: BookOpen, label: 'New Reservation' },
     { to: '/reception/checkin', icon: LogIn, label: 'Check-In' },
@@ -35,6 +38,7 @@ const receptionNav = [
 const customerNav = [
   { label: 'My Account', items: [
     { to: '/customer', icon: Home, label: 'Home' },
+    { to: '/customer/profile', icon: UserCog, label: 'My Profile' },
     { to: '/customer/rooms', icon: BedDouble, label: 'Browse Rooms' },
     { to: '/customer/book', icon: BookOpen, label: 'Book a Room' },
     { to: '/customer/bookings', icon: History, label: 'My Bookings' },

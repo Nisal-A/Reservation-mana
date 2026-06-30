@@ -207,7 +207,7 @@ router.patch('/:id/checkin', verifyToken, requireRole('admin', 'reception'), asy
 
 // PATCH /api/reservations/:id/checkout — reception/admin
 router.patch('/:id/checkout', verifyToken, requireRole('admin', 'reception'), async (req, res) => {
-  const { remark } = req.body;
+  const { remark, payment_method } = req.body;
   try {
     const [rows] = await pool.query(
       `SELECT r.*, rm.price AS room_price FROM reservations r
@@ -226,15 +226,15 @@ router.patch('/:id/checkout', verifyToken, requireRole('admin', 'reception'), as
     const finalTotal = calcTotal(reservation.check_in_date, reservation.check_out_date, reservation.room_price);
 
     await pool.query(
-      "UPDATE reservations SET status = 'checked_out', total_amount = ?, remark = COALESCE(?, remark) WHERE reservation_id = ?",
-      [finalTotal, remark || null, req.params.id]
+      "UPDATE reservations SET status = 'checked_out', total_amount = ?, remark = COALESCE(?, remark), payment_method = ? WHERE reservation_id = ?",
+      [finalTotal, remark || null, payment_method || null, req.params.id]
     );
     await pool.query(
       "UPDATE rooms SET status = 'available' WHERE room_id = ?",
       [reservation.room_id]
     );
 
-    res.json({ message: 'Guest checked out successfully.', total_amount: finalTotal });
+    res.json({ message: 'Guest checked out successfully.', total_amount: finalTotal, payment_method });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error.' });

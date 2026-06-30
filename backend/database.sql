@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS reservations (
     check_out_date DATE NOT NULL,
     total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     status ENUM('pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled') DEFAULT 'pending',
+    payment_method ENUM('cash', 'card', 'online') DEFAULT NULL,
     remark TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE,

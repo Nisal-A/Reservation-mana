@@ -6,6 +6,10 @@ const authRoutes = require('./routes/auth');
 const roomRoutes = require('./routes/rooms');
 const reservationRoutes = require('./routes/reservations');
 const reportRoutes = require('./routes/reports');
+const usersRoutes = require('./routes/users');
+const customersRoutes = require('./routes/customers');
+const uploadRoutes = require('./routes/upload');
+const path = require('path');
 
 const app = express();
 
@@ -17,11 +21,17 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve uploaded images statically
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/customers', customersRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

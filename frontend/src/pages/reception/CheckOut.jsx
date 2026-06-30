@@ -10,27 +10,33 @@ export default function CheckOut() {
   const [searching, setSearching] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [remark, setRemark] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
   const [bill, setBill] = useState(null);
 
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchId.trim()) return;
-    setSearching(true); setReservation(null); setBill(null);
+    setSearching(true); setReservation(null); setBill(null); setPaymentMethod('');
     try {
       const { data } = await api.get(`/reservations/${searchId}`);
       setReservation(data);
+      if (data.payment_method) setPaymentMethod(data.payment_method);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Reservation not found');
     } finally { setSearching(false); }
   };
 
   const handleCheckOut = async () => {
+    if (!paymentMethod) {
+      toast.error('Please select a payment method');
+      return;
+    }
     setProcessing(true);
     try {
-      const { data } = await api.patch(`/reservations/${reservation.reservation_id}/checkout`, { remark });
+      const { data } = await api.patch(`/reservations/${reservation.reservation_id}/checkout`, { remark, payment_method: paymentMethod });
       toast.success('Guest checked out successfully!');
       setBill(data.total_amount);
-      setReservation({ ...reservation, status: 'checked_out', total_amount: data.total_amount });
+      setReservation({ ...reservation, status: 'checked_out', total_amount: data.total_amount, payment_method: data.payment_method });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Check-out failed');
     } finally { setProcessing(false); }
@@ -121,11 +127,23 @@ export default function CheckOut() {
             </div>
 
             {reservation.status === 'checked_out' ? (
-              <div className="alert alert-success">
-                ✅ Guest has been checked out. Total billed: <strong>${Number(bill ?? reservation.total_amount).toFixed(2)}</strong>
+              <div className="alert alert-success" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>✅ Guest has been checked out. Total billed: <strong>${Number(bill ?? reservation.total_amount).toFixed(2)}</strong></div>
+                <button className="btn btn-secondary btn-sm" onClick={() => window.print()}>
+                  <Printer size={16} /> Print Receipt
+                </button>
               </div>
             ) : reservation.status === 'checked_in' ? (
               <>
+                <div className="form-group" style={{ marginBottom: 16 }}>
+                  <label className="form-label">Payment Method *</label>
+                  <select className="form-input" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} required>
+                    <option value="">Select Payment Method</option>
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="online">Online Payment</option>
+                  </select>
+                </div>
                 <div className="form-group" style={{ marginBottom: 16 }}>
                   <label className="form-label">Final Remarks (optional)</label>
                   <textarea className="form-input" rows={2} value={remark} onChange={(e) => setRemark(e.target.value)} placeholder="e.g. Room left in good condition" style={{ resize: 'vertical' }} />
@@ -134,7 +152,7 @@ export default function CheckOut() {
                   id="btn-confirm-checkout"
                   className="btn btn-primary w-full"
                   onClick={handleCheckOut}
-                  disabled={processing}
+                  disabled={processing || !paymentMethod}
                 >
                   <LogOut size={16} />
                   {processing ? 'Processing...' : 'Confirm Check-Out & Generate Bill'}

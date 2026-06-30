@@ -46,11 +46,24 @@ export default function RoomManagement() {
     e.preventDefault();
     setFormLoading(true);
     try {
+      let imageUrl = form.image_url;
+      if (form.imageFile) {
+        const formData = new FormData();
+        formData.append('image', form.imageFile);
+        const { data: uploadData } = await api.post('/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        imageUrl = uploadData.imageUrl;
+      }
+      
+      const payload = { ...form, image_url: imageUrl };
+      delete payload.imageFile;
+
       if (editRoom) {
-        await api.put(`/rooms/${editRoom.room_id}`, form);
+        await api.put(`/rooms/${editRoom.room_id}`, payload);
         toast.success('Room updated!');
       } else {
-        await api.post('/rooms', form);
+        await api.post('/rooms', payload);
         toast.success('Room added!');
       }
       closeModal();
@@ -189,6 +202,11 @@ export default function RoomManagement() {
                     {STATUSES.map((s) => <option key={s}>{s}</option>)}
                   </select>
                 </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Room Image</label>
+                <input className="form-input" type="file" accept="image/*" onChange={(e) => setForm({ ...form, imageFile: e.target.files[0] })} />
+                {form.image_url && !form.imageFile && <div style={{marginTop: 8, fontSize: '0.8rem', color: 'var(--color-text-muted)'}}>Current image: {form.image_url}</div>}
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">Description</label>

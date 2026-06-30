@@ -13,6 +13,7 @@ import AdminDashboard from './pages/admin/Dashboard';
 import RoomManagement from './pages/admin/RoomManagement';
 import AdminReservations from './pages/admin/Reservations';
 import Reports from './pages/admin/Reports';
+import UserManagement from './pages/admin/UserManagement';
 
 // Reception Pages
 import ReceptionDashboard from './pages/reception/Dashboard';
@@ -21,12 +22,14 @@ import CreateReservation from './pages/reception/CreateReservation';
 import CheckIn from './pages/reception/CheckIn';
 import CheckOut from './pages/reception/CheckOut';
 import SearchBookings from './pages/reception/SearchBookings';
+import CustomerManagement from './pages/reception/CustomerManagement';
 
 // Customer Pages
 import CustomerHome from './pages/customer/Home';
 import BrowseRooms from './pages/customer/BrowseRooms';
 import BookRoom from './pages/customer/BookRoom';
 import MyBookings from './pages/customer/MyBookings';
+import Profile from './pages/customer/Profile';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -52,6 +55,7 @@ function AppRoutes() {
         </ProtectedRoute>
       }>
         <Route index element={<AdminDashboard />} />
+        <Route path="users"        element={<UserManagement />} />
         <Route path="rooms"        element={<RoomManagement />} />
         <Route path="reservations" element={<AdminReservations />} />
         <Route path="reports"      element={<Reports />} />
@@ -64,6 +68,7 @@ function AppRoutes() {
         </ProtectedRoute>
       }>
         <Route index element={<ReceptionDashboard />} />
+        <Route path="customers"          element={<CustomerManagement />} />
         <Route path="reservations"       element={<ReceptionReservations />} />
         <Route path="create-reservation" element={<CreateReservation />} />
         <Route path="checkin"            element={<CheckIn />} />
@@ -82,6 +87,7 @@ function AppRoutes() {
         <Route path="rooms"    element={<BrowseRooms />} />
         <Route path="book"     element={<BookRoom />} />
         <Route path="bookings" element={<MyBookings />} />
+        <Route path="profile"  element={<Profile />} />
       </Route>
 
       {/* Fallback */}
