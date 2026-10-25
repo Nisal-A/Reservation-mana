@@ -2,13 +2,9 @@ import { useEffect, useState } from 'react';
 import { BedDouble, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
-import { PageLoader, StatusBadge, EmptyState, PageHeader } from '../../components/UI';
+import { PageLoader, EmptyState, PageHeader } from '../../components/UI';
 
 const ROOM_TYPES = ['Single', 'Double', 'Suite', 'Deluxe'];
-
-const ROOM_ICONS = {
-  Single: '🛏️', Double: '🛏️🛏️', Suite: '🏩', Deluxe: '🌟'
-};
 
 export default function BrowseRooms() {
   const [rooms, setRooms] = useState([]);
@@ -18,15 +14,19 @@ export default function BrowseRooms() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/rooms', { params: { status: 'available' } })
-      .then(({ data }) => setRooms(data))
+    api.get('/public/rooms')
+      .then(({ data }) => setRooms(Array.isArray(data) ? data : (data.data || [])))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const filtered = rooms.filter((r) => {
     const matchType = !filterType || r.room_type === filterType;
-    const matchSearch = !search || r.room_number.toLowerCase().includes(search.toLowerCase()) || r.room_type.toLowerCase().includes(search.toLowerCase());
+    const matchSearch =
+      !search ||
+      (r.room_type && r.room_type.toLowerCase().includes(search.toLowerCase())) ||
+      (r.description && r.description.toLowerCase().includes(search.toLowerCase())) ||
+      (r.room_number && r.room_number.toLowerCase().includes(search.toLowerCase()));
     return matchType && matchSearch;
   });
 
@@ -60,28 +60,30 @@ export default function BrowseRooms() {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState icon="🛏️" title="No available rooms" message="Try different filters or check back later." />
+        <EmptyState icon={<BedDouble size={36} />} title="No available rooms" message="Try different filters or check back later." />
       ) : (
         <div className="rooms-grid">
-          {filtered.map((room) => (
-            <div key={room.room_id} className="room-card">
-              <div className="room-card-image">
-                <span style={{ fontSize: '4rem' }}>{ROOM_ICONS[room.room_type] || '🛏️'}</span>
-                <div style={{
-                  position: 'absolute', top: 12, right: 12,
-                  background: 'rgba(16,185,129,0.15)', color: '#10b981',
-                  fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px',
-                  borderRadius: 999, backdropFilter: 'blur(4px)', border: '1px solid rgba(16,185,129,0.3)'
-                }}>Available</div>
-              </div>
-              <div className="room-card-body">
-                <div className="room-card-header">
-                  <div>
-                    <div className="room-number">Room {room.room_number}</div>
-                    <div className="room-type">{room.room_type}</div>
-                  </div>
-                  <div className="room-price">${Number(room.price).toFixed(0)}<span>/night</span></div>
+          {filtered.map((room) => {
+            const price = room.price_per_night || room.price;
+            return (
+              <div key={room.room_id} className="room-card">
+                <div className="room-card-image" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <BedDouble size={48} style={{ opacity: 0.6 }} />
+                  <div style={{
+                    position: 'absolute', top: 12, right: 12,
+                    background: 'rgba(16,185,129,0.15)', color: '#10b981',
+                    fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px',
+                    borderRadius: 999, backdropFilter: 'blur(4px)', border: '1px solid rgba(16,185,129,0.3)'
+                  }}>Available</div>
                 </div>
+                <div className="room-card-body">
+                  <div className="room-card-header">
+                    <div>
+                      <div className="room-number">{room.room_number ? `Room ${room.room_number}` : room.room_type}</div>
+                      <div className="room-type">{room.view_label || room.bed_type || room.room_type}</div>
+                    </div>
+                    <div className="room-price">LKR {Number(price).toLocaleString()}<span>/night</span></div>
+                  </div>
                 {room.description && (
                   <p className="room-desc">{room.description}</p>
                 )}
@@ -94,7 +96,8 @@ export default function BrowseRooms() {
                 </button>
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       )}
     </div>

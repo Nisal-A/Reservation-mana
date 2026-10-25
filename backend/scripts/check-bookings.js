@@ -362,7 +362,168 @@ async function run() {
     }
     console.log(`✅ Test 6 Passed: Check-out with unpaid balance returned 409 with balance (${checkOutRes.data.balance}).`);
 
-    console.log('\n🎉 ALL 6 ACCEPTANCE TESTS PASSED SUCCESSFULLY! 🎉\n');
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 8: A payment above balance gives 400
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\n--- Test 8: Payment above balance gives 400 ---');
+    const billResInitial = await request(baseUrl, {
+      method: 'GET',
+      path: `/api/reservations/${urgentRef}/bill`,
+      token: tokenStaff,
+    });
+    console.log(`Initial Bill: Total=${billResInitial.data.total}, Status=${billResInitial.data.payment_status}, Balance=${billResInitial.data.balance}`);
+    if (billResInitial.data.payment_status !== 'unpaid') {
+      throw new Error(`Expected initial payment_status to be unpaid, got ${billResInitial.data.payment_status}`);
+    }
+
+    const excessPaymentRes = await request(baseUrl, {
+      method: 'POST',
+      path: `/api/reservations/${urgentRef}/payments`,
+      token: tokenStaff,
+      body: {
+        amount: billResInitial.data.balance + 500,
+        method: 'cash',
+        note: 'Attempting excess payment',
+      },
+    });
+
+    console.log(`Status: ${excessPaymentRes.status}, Message: ${excessPaymentRes.data?.message}`);
+    if (excessPaymentRes.status !== 400) {
+      throw new Error(`Test 8 Failed: Expected 400 for payment above balance, got ${excessPaymentRes.status}`);
+    }
+    console.log('✅ Test 8 Passed: Payment above balance correctly returned 400.');
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 7: Partial payments move payment_status unpaid -> partial -> paid
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\n--- Test 7: Partial payments move payment_status unpaid -> partial -> paid ---');
+    const halfAmount = Number((billResInitial.data.balance / 2).toFixed(2));
+    const firstPaymentRes = await request(baseUrl, {
+      method: 'POST',
+      path: `/api/reservations/${urgentRef}/payments`,
+      token: tokenStaff,
+      body: {
+        amount: halfAmount,
+        method: 'cash',
+        note: 'First installment',
+      },
+    });
+
+    console.log(`First payment status: ${firstPaymentRes.status}, Payment status: ${firstPaymentRes.data?.bill?.payment_status}, Balance: ${firstPaymentRes.data?.bill?.balance}`);
+    if (firstPaymentRes.status !== 201 || firstPaymentRes.data?.bill?.payment_status !== 'partial') {
+      throw new Error(`Test 7a Failed: Expected 201 and partial payment status, got ${firstPaymentRes.status} and ${firstPaymentRes.data?.bill?.payment_status}`);
+    }
+
+    // Verify owning customer can see bill without recorded_by
+    const custBillRes = await request(baseUrl, {
+      method: 'GET',
+      path: `/api/reservations/my/${urgentRef}`,
+      token: tokenA,
+    });
+    if (!custBillRes.data?.bill || custBillRes.data.bill.payments.some((p) => p.recorded_by !== undefined)) {
+      throw new Error('Test 7 Failed: Customer bill should be included and hide recorded_by');
+    }
+
+    // Pay remaining balance
+    const remainingBalance = firstPaymentRes.data.bill.balance;
+    const secondPaymentRes = await request(baseUrl, {
+      method: 'POST',
+      path: `/api/reservations/${urgentRef}/payments`,
+      token: tokenStaff,
+      body: {
+        amount: remainingBalance,
+        method: 'card',
+        reference: 'TXN-CARD-12345',
+        note: 'Final settlement',
+      },
+    });
+
+    console.log(`Second payment status: ${secondPaymentRes.status}, Payment status: ${secondPaymentRes.data?.bill?.payment_status}, Balance: ${secondPaymentRes.data?.bill?.balance}`);
+    if (secondPaymentRes.status !== 201 || secondPaymentRes.data?.bill?.payment_status !== 'paid') {
+      throw new Error(`Test 7b Failed: Expected 201 and paid payment status, got ${secondPaymentRes.status} and ${secondPaymentRes.data?.bill?.payment_status}`);
+    }
+    console.log('✅ Test 7 Passed: Partial payments moved payment_status unpaid -> partial -> paid.');
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 9: GET /api/public/rooms works with no Authorization header and filters correctly by dates and guests
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\n--- Test 9: Public rooms works without Authorization header and filters by dates and guests ---');
+    const publicRoomsRes = await request(baseUrl, {
+      method: 'GET',
+      path: `/api/public/rooms?check_in=${farInCheck}&check_out=${farOutCheck}&guests=1`,
+    });
+
+    console.log(`Status: ${publicRoomsRes.status}, Found: ${publicRoomsRes.data?.length} rooms`);
+    if (publicRoomsRes.status !== 200 || !Array.isArray(publicRoomsRes.data)) {
+      throw new Error(`Test 9 Failed: Expected 200 array response, got ${publicRoomsRes.status}`);
+    }
+
+    // Verify room_number is NEVER exposed to public
+    const hasRoomNumber = publicRoomsRes.data.some((r) => r.room_number !== undefined);
+    if (hasRoomNumber) {
+      throw new Error('Test 9 Failed: Public rooms endpoint leaked room_number!');
+    }
+
+    // Verify nights and total are computed
+    const sample = publicRoomsRes.data[0];
+    if (sample && (sample.nights === undefined || sample.total === undefined)) {
+      throw new Error('Test 9 Failed: Public rooms with dates must include nights and total');
+    }
+
+    // Verify testRoom (booked for farInCheck to farOutCheck) is NOT present in available list
+    const bookedRoomPresent = publicRoomsRes.data.some((r) => r.room_id === testRoom.room_id);
+    if (bookedRoomPresent) {
+      throw new Error(`Test 9 Failed: Booked room ${testRoom.room_id} was returned as available`);
+    }
+
+    // Verify filtering by guests works
+    const overCapacityRes = await request(baseUrl, {
+      method: 'GET',
+      path: `/api/public/rooms?check_in=${farInCheck}&check_out=${farOutCheck}&guests=999`,
+    });
+    if (overCapacityRes.status !== 200 || overCapacityRes.data.length !== 0) {
+      throw new Error('Test 9 Failed: Filtering by excessive guest count should return 0 rooms');
+    }
+    console.log('✅ Test 9 Passed: Public rooms works without auth and filters correctly.');
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 10: GET /api/rooms with no token gives 401
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\n--- Test 10: GET /api/rooms with no token gives 401 ---');
+    const noTokenRes = await request(baseUrl, {
+      method: 'GET',
+      path: '/api/rooms',
+    });
+
+    console.log(`Status: ${noTokenRes.status}`);
+    if (noTokenRes.status !== 401) {
+      throw new Error(`Test 10 Failed: Expected 401 for unauthenticated /api/rooms, got ${noTokenRes.status}`);
+    }
+    console.log('✅ Test 10 Passed: GET /api/rooms with no token correctly returned 401.');
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 11: Marking a room with a future confirmed booking as maintenance gives 409
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\n--- Test 11: Marking a room with a future confirmed booking as maintenance gives 409 ---');
+    const maintRes = await request(baseUrl, {
+      method: 'PUT',
+      path: `/api/rooms/${testRoom.room_id}`,
+      token: tokenStaff,
+      body: {
+        status: 'maintenance',
+      },
+    });
+
+    console.log(`Status: ${maintRes.status}, Conflicts: ${JSON.stringify(maintRes.data?.conflicting_reservations)}`);
+    if (maintRes.status !== 409 || !Array.isArray(maintRes.data?.conflicting_reservations) || maintRes.data.conflicting_reservations.length === 0) {
+      throw new Error(`Test 11 Failed: Expected 409 with conflicting_reservations array, got ${maintRes.status}: ${JSON.stringify(maintRes.data)}`);
+    }
+    if (!maintRes.data.conflicting_reservations.includes(futureRef)) {
+      throw new Error(`Test 11 Failed: Conflicting reservations should include ${futureRef}`);
+    }
+    console.log(`✅ Test 11 Passed: Setting maintenance returned 409 with conflicting reservations.`);
+
+    console.log('\n🎉 ALL 11 ACCEPTANCE TESTS PASSED SUCCESSFULLY! 🎉\n');
   } finally {
     server.close();
     await pool.end();

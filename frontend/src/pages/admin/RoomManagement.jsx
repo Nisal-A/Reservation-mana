@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Search, BedDouble } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { Plus, Pencil, Trash2, Search, BedDouble, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageLoader, StatusBadge, EmptyState, PageHeader, ConfirmModal } from '../../components/UI';
@@ -21,18 +21,18 @@ export default function RoomManagement() {
   const [formLoading, setFormLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  const fetchRooms = async () => {
+  const fetchRooms = useCallback(async () => {
     try {
       const params = {};
       if (filterStatus) params.status = filterStatus;
       if (filterType)   params.type   = filterType;
       const { data } = await api.get('/rooms', { params });
-      setRooms(data);
+      setRooms(Array.isArray(data) ? data : (data.data || []));
     } catch { toast.error('Failed to load rooms'); }
     finally  { setLoading(false); }
-  };
+  }, [filterStatus, filterType]);
 
-  useEffect(() => { fetchRooms(); }, [filterStatus, filterType]);
+  useEffect(() => { fetchRooms(); }, [fetchRooms]);
 
   const openAdd = () => { setEditRoom(null); setForm(emptyForm); setShowModal(true); };
   const openEdit = (room) => {
@@ -129,7 +129,7 @@ export default function RoomManagement() {
       {/* Rooms Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {filtered.length === 0 ? (
-          <EmptyState icon="🛏️" title="No rooms found" message="Add a room or adjust your filters." />
+          <EmptyState icon={<BedDouble size={36} />} title="No rooms found" message="Add a room or adjust your filters." />
         ) : (
           <div className="table-wrapper">
             <table className="table">
@@ -148,7 +148,7 @@ export default function RoomManagement() {
                   <tr key={room.room_id}>
                     <td><strong>{room.room_number}</strong></td>
                     <td>{room.room_type}</td>
-                    <td style={{ color: 'var(--color-gold)', fontWeight: 700 }}>${Number(room.price).toFixed(2)}</td>
+                    <td style={{ color: 'var(--color-gold)', fontWeight: 700 }}>LKR {Number(room.price).toFixed(2)}</td>
                     <td><StatusBadge status={room.status} /></td>
                     <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
                       {room.description || '—'}
@@ -178,7 +178,7 @@ export default function RoomManagement() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">{editRoom ? 'Edit Room' : 'Add New Room'}</div>
-              <button className="icon-btn" onClick={closeModal}>✕</button>
+              <button className="icon-btn" onClick={closeModal}><X size={16} /></button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="form-grid form-grid-2" style={{ marginBottom: 16 }}>

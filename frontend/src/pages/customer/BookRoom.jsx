@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, CalendarCheck } from 'lucide-react';
+import { Search, CalendarCheck, CheckCircle, BedDouble, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageHeader } from '../../components/UI';
@@ -25,13 +25,14 @@ export default function BookRoom() {
     if (new Date(form.check_out_date) <= new Date(form.check_in_date)) return toast.error('Check-out must be after check-in');
     setChecking(true);
     try {
-      const { data } = await api.get('/rooms/available', {
+      const { data } = await api.get('/public/rooms', {
         params: { check_in: form.check_in_date, check_out: form.check_out_date }
       });
-      setAvailableRooms(data);
+      const roomList = Array.isArray(data) ? data : (data.data || []);
+      setAvailableRooms(roomList);
       setSearched(true);
-      if (data.length === 0) toast.error('No rooms available for selected dates');
-      else toast.success(`${data.length} room${data.length > 1 ? 's' : ''} available!`);
+      if (roomList.length === 0) toast.error('No rooms available for selected dates');
+      else toast.success(`${roomList.length} room${roomList.length > 1 ? 's' : ''} available!`);
     } catch { toast.error('Failed to check availability'); }
     finally { setChecking(false); }
   };
@@ -42,7 +43,7 @@ export default function BookRoom() {
   };
 
   const selectedRoom = availableRooms.find((r) => r.room_id === Number(form.room_id));
-  const total = selectedRoom ? nights() * selectedRoom.price : 0;
+  const total = selectedRoom ? nights() * (selectedRoom.price_per_night || selectedRoom.price) : 0;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -56,7 +57,7 @@ export default function BookRoom() {
         remark: form.remark,
       });
       setSuccess(data);
-      toast.success('🎉 Room booked successfully!');
+      toast.success('Room booked successfully!');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Booking failed');
     } finally { setSubmitting(false); }
@@ -66,18 +67,18 @@ export default function BookRoom() {
     return (
       <div className="page-content slide-up">
         <div style={{ maxWidth: 520, margin: '60px auto', textAlign: 'center' }}>
-          <div style={{ fontSize: '4rem', marginBottom: 20 }}>🎉</div>
+          <CheckCircle size={64} style={{ color: 'var(--color-gold)', margin: '0 auto 20px' }} />
           <h1 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: 12 }}>Booking Confirmed!</h1>
           <p style={{ color: 'var(--color-text-muted)', marginBottom: 30 }}>
-            Your reservation for Room {success.room_number} has been confirmed.
+            Your reservation has been confirmed.
           </p>
           <div className="billing-card" style={{ marginBottom: 24, textAlign: 'left' }}>
             {[
-              ['Reservation #', success.reservation_id],
-              ['Room',          `${success.room_number} (${success.room_type})`],
-              ['Check-In',      new Date(success.check_in_date).toLocaleDateString()],
-              ['Check-Out',     new Date(success.check_out_date).toLocaleDateString()],
-              ['Total',         `$${Number(success.total_amount).toFixed(2)}`],
+              ['Booking Ref',   success.booking_ref || success.reservation_id],
+              ['Room',          success.room_number ? `Room ${success.room_number}` : 'Assigned on arrival'],
+              ['Check-In',      success.check_in_date],
+              ['Check-Out',     success.check_out_date],
+              ['Total',         `LKR ${Number(success.total_amount || success.total_price || 0).toLocaleString()}`],
               ['Status',        success.status],
             ].map(([l, v]) => (
               <div className="billing-row" key={l}>
@@ -146,15 +147,15 @@ export default function BookRoom() {
                   >
                     <input type="radio" name="room" value={r.room_id} checked={Number(form.room_id) === r.room_id}
                       onChange={set('room_id')} style={{ display:'none' }} />
-                    <div style={{ fontSize: '1.6rem' }}>
-                      {r.room_type === 'Suite' ? '🏩' : r.room_type === 'Deluxe' ? '🌟' : '🛏️'}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <BedDouble size={28} style={{ color: 'var(--color-gold)' }} />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700 }}>Room {r.room_number} — {r.room_type}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{r.description}</div>
+                      <div style={{ fontWeight: 700 }}>{r.room_number ? `Room ${r.room_number} — ${r.room_type}` : r.room_type}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{r.description || r.view_label || r.bed_type}</div>
                     </div>
                     <div style={{ color: 'var(--color-gold)', fontWeight: 800, fontSize: '1.1rem' }}>
-                      ${r.price}<span style={{ fontSize: '0.7rem', fontWeight: 400, color: 'var(--color-text-muted)' }}>/night</span>
+                      LKR {Number(r.price_per_night || r.price).toLocaleString()}<span style={{ fontSize: '0.7rem', fontWeight: 400, color: 'var(--color-text-muted)' }}>/night</span>
                     </div>
                   </label>
                 ))}
@@ -176,12 +177,14 @@ export default function BookRoom() {
         {/* Booking Summary Panel */}
         <div>
           <div className="card" style={{ position: 'sticky', top: 80 }}>
-            <div className="card-title">📋 Booking Summary</div>
+            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Calendar size={18} /> Booking Summary
+            </div>
             {selectedRoom ? (
               <div className="billing-card">
                 <div className="billing-row">
                   <span style={{ color:'var(--color-text-muted)' }}>Room</span>
-                  <span style={{ fontWeight:600 }}>Room {selectedRoom.room_number}</span>
+                  <span style={{ fontWeight:600 }}>{selectedRoom.room_number ? `Room ${selectedRoom.room_number}` : selectedRoom.room_type}</span>
                 </div>
                 <div className="billing-row">
                   <span style={{ color:'var(--color-text-muted)' }}>Type</span>
@@ -189,7 +192,7 @@ export default function BookRoom() {
                 </div>
                 <div className="billing-row">
                   <span style={{ color:'var(--color-text-muted)' }}>Rate</span>
-                  <span>${selectedRoom.price}/night</span>
+                  <span>LKR {Number(selectedRoom.price_per_night || selectedRoom.price).toLocaleString()}/night</span>
                 </div>
                 <div className="billing-row">
                   <span style={{ color:'var(--color-text-muted)' }}>Nights</span>
@@ -197,7 +200,7 @@ export default function BookRoom() {
                 </div>
                 <div className="billing-row">
                   <span style={{ fontWeight:700 }}>Total</span>
-                  <span className="billing-total">${total.toFixed(2)}</span>
+                  <span className="billing-total">LKR {Number(total).toFixed(2)}</span>
                 </div>
               </div>
             ) : (

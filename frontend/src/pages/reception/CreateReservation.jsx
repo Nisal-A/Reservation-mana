@@ -2,13 +2,11 @@ import { useEffect, useState } from 'react';
 import { CalendarCheck, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
-import { PageLoader, PageHeader } from '../../components/UI';
+import { PageHeader } from '../../components/UI';
 
 export default function CreateReservation() {
   const [customers, setCustomers] = useState([]);
-  const [rooms, setRooms] = useState([]);
   const [availableRooms, setAvailableRooms] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [checking, setChecking] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -34,12 +32,13 @@ export default function CreateReservation() {
     }
     setChecking(true);
     try {
-      const { data } = await api.get('/rooms/available', {
+      const { data } = await api.get('/public/rooms', {
         params: { check_in: form.check_in_date, check_out: form.check_out_date }
       });
-      setAvailableRooms(data);
+      const roomList = Array.isArray(data) ? data : (data.data || []);
+      setAvailableRooms(roomList);
       setSearched(true);
-      if (data.length === 0) toast.error('No rooms available for selected dates');
+      if (roomList.length === 0) toast.error('No rooms available for selected dates');
     } catch { toast.error('Failed to check availability'); }
     finally { setChecking(false); }
   };
@@ -141,13 +140,15 @@ export default function CreateReservation() {
         {/* Summary Panel */}
         <div>
           <div className="card">
-            <div className="card-title">📋 Booking Summary</div>
+            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CalendarCheck size={16} /> Booking Summary
+            </div>
             {selectedRoom ? (
               <div>
                 <div className="billing-card" style={{ marginBottom: 16 }}>
                   <div className="billing-row">
                     <span className="text-muted">Room</span>
-                    <span>Room {selectedRoom.room_number}</span>
+                    <span>{selectedRoom.room_number ? `Room ${selectedRoom.room_number}` : selectedRoom.room_type}</span>
                   </div>
                   <div className="billing-row">
                     <span className="text-muted">Type</span>
@@ -155,7 +156,7 @@ export default function CreateReservation() {
                   </div>
                   <div className="billing-row">
                     <span className="text-muted">Rate</span>
-                    <span>${selectedRoom.price}/night</span>
+                    <span>LKR {Number(selectedRoom.price_per_night || selectedRoom.price).toLocaleString()}/night</span>
                   </div>
                   <div className="billing-row">
                     <span className="text-muted">Nights</span>
@@ -163,7 +164,7 @@ export default function CreateReservation() {
                   </div>
                   <div className="billing-row">
                     <span className="text-muted font-bold">Total</span>
-                    <span className="billing-total">${total.toFixed(2)}</span>
+                    <span className="billing-total">LKR {Number(total).toFixed(2)}</span>
                   </div>
                 </div>
               </div>

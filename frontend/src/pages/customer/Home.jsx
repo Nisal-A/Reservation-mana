@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BedDouble, CalendarCheck, BookOpen, History } from 'lucide-react';
+import { BedDouble, BookOpen, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
@@ -15,13 +15,14 @@ export default function CustomerHome() {
   useEffect(() => {
     Promise.all([
       api.get('/reservations/my'),
-      api.get('/rooms', { params: { status: 'available' } }),
+      api.get('/public/rooms'),
     ]).then(([res, rooms]) => {
       const myRes = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      const roomList = Array.isArray(rooms.data) ? rooms.data : (rooms.data?.data || []);
       setSummary({
         confirmed: myRes.filter((r) => r.status === 'confirmed').length,
         total: myRes.length,
-        availableRooms: rooms.data.length,
+        availableRooms: roomList.length,
       });
       setRecentBookings(myRes.slice(0, 3));
     }).finally(() => setLoading(false));
@@ -41,7 +42,7 @@ export default function CustomerHome() {
     <div className="page-content slide-up">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Hello, {user.name || user.username} 👋</h1>
+          <h1 className="page-title">Hello, {user.name || user.username}</h1>
           <p className="page-subtitle">Welcome to LuxeStay — your comfort is our priority</p>
         </div>
       </div>
@@ -81,7 +82,7 @@ export default function CustomerHome() {
       {/* Recent Bookings */}
       {recentBookings.length > 0 && (
         <div className="card">
-          <div className="card-title">📋 Recent Bookings</div>
+          <div className="card-title">Recent Bookings</div>
           <div className="table-wrapper">
             <table className="table">
               <thead>
@@ -90,11 +91,11 @@ export default function CustomerHome() {
               <tbody>
                 {recentBookings.map((r) => (
                   <tr key={r.reservation_id}>
-                    <td style={{ color:'var(--color-text-muted)' }}>#{r.reservation_id}</td>
-                    <td>Room {r.room_number} <span style={{ color:'var(--color-text-muted)', fontSize:'0.8rem' }}>({r.room_type})</span></td>
+                    <td style={{ color:'var(--color-text-muted)' }}>#{r.booking_ref || r.reservation_id}</td>
+                    <td>{r.room_number ? `Room ${r.room_number}` : 'Room'} <span style={{ color:'var(--color-text-muted)', fontSize:'0.8rem' }}>({r.room_type})</span></td>
                     <td>{fmt(r.check_in_date)}</td>
                     <td>{fmt(r.check_out_date)}</td>
-                    <td style={{ color:'var(--color-gold)', fontWeight:700 }}>${Number(r.total_amount).toFixed(2)}</td>
+                    <td style={{ color:'var(--color-gold)', fontWeight:700 }}>LKR {Number(r.total_amount).toFixed(2)}</td>
                     <td>
                       <span className={`badge badge-${r.status}`}>{r.status.replace('_', ' ')}</span>
                     </td>
