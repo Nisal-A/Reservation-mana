@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { BedDouble, CalendarCheck, LogIn, LogOut, Clock } from 'lucide-react';
+import { BedDouble, LogIn, LogOut, Clock, Bell } from 'lucide-react';
 import api from '../../api/axios';
 import { PageLoader, StatCard } from '../../components/UI';
 import { useAuth } from '../../context/AuthContext';
+import { formatDate, formatLKR, todayISO } from '../../utils/format';
 
 export default function ReceptionDashboard() {
   const { user } = useAuth();
@@ -30,14 +31,12 @@ export default function ReceptionDashboard() {
     { icon: <Clock size={20} />,     label: 'Pending Approvals',  value: summary.pending_reservations, color: '#d4a843', bg: 'rgba(212,168,67,0.12)' },
   ];
 
-  const fmt = (d) => d ? new Date(d).toLocaleDateString() : '—';
-
   return (
     <div className="page-content slide-up">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Welcome, {user.name || user.username} 👋</h1>
-          <p className="page-subtitle">Reception Dashboard — {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <h1 className="page-title">Welcome, {user.name || user.username}</h1>
+          <p className="page-subtitle">Reception Dashboard — {formatDate(todayISO())}</p>
         </div>
       </div>
 
@@ -47,7 +46,9 @@ export default function ReceptionDashboard() {
 
       {/* Upcoming check-ins */}
       <div className="card">
-        <div className="card-title">🔔 Upcoming Confirmed Reservations</div>
+        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Bell size={16} /> Upcoming Confirmed Reservations
+        </div>
         {recentRes.length === 0 ? (
           <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>No upcoming confirmed reservations.</p>
         ) : (
@@ -62,9 +63,9 @@ export default function ReceptionDashboard() {
                     <td style={{ color: 'var(--color-text-muted)' }}>#{r.reservation_id}</td>
                     <td><strong>{r.customer_name}</strong></td>
                     <td>Room {r.room_number} ({r.room_type})</td>
-                    <td>{fmt(r.check_in_date)}</td>
-                    <td>{fmt(r.check_out_date)}</td>
-                    <td style={{ color: 'var(--color-gold)', fontWeight: 600 }}>${Number(r.total_amount).toFixed(2)}</td>
+                    <td>{formatDate(r.check_in_date)}</td>
+                    <td>{formatDate(r.check_out_date)}</td>
+                    <td style={{ color: 'var(--color-gold)', fontWeight: 600 }}>{formatLKR(r.total_amount)}</td>
                   </tr>
                 ))}
               </tbody>

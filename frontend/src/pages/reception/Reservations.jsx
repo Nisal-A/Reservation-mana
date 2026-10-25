@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Search, Eye, X, UserCheck, LogOut } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { Search, Eye, X, UserCheck, LogOut, Calendar, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageLoader, StatusBadge, EmptyState, PageHeader } from '../../components/UI';
 import { useNavigate } from 'react-router-dom';
+import { formatDate, formatLKR } from '../../utils/format';
 
 const STATUSES = ['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled'];
 
@@ -15,7 +16,7 @@ export default function ReceptionReservations() {
   const [viewRes, setViewRes] = useState(null);
   const navigate = useNavigate();
 
-  const fetch = async () => {
+  const fetch = useCallback(async () => {
     try {
       const params = {};
       if (filterStatus) params.status = filterStatus;
@@ -24,11 +25,9 @@ export default function ReceptionReservations() {
       setReservations(Array.isArray(data) ? data : (data.data || []));
     } catch { toast.error('Failed to load'); }
     finally  { setLoading(false); }
-  };
+  }, [filterStatus, search]);
 
-  useEffect(() => { fetch(); }, [filterStatus]);
-
-  const fmt = (d) => d ? new Date(d).toLocaleDateString() : '—';
+  useEffect(() => { fetch(); }, [fetch]);
 
   const handleCancel = async (ref) => {
     if (!window.confirm('Cancel this reservation?')) return;
@@ -47,7 +46,7 @@ export default function ReceptionReservations() {
         subtitle={`${reservations.length} records`}
         action={
           <button className="btn btn-primary" onClick={() => navigate('/reception/create-reservation')}>
-            + New Reservation
+            <Plus size={16} /> New Reservation
           </button>
         }
       />
@@ -66,7 +65,7 @@ export default function ReceptionReservations() {
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {reservations.length === 0
-          ? <EmptyState icon="📅" title="No reservations found" />
+          ? <EmptyState icon={Calendar} title="No reservations found" />
           : (
             <div className="table-wrapper">
               <table className="table">
@@ -82,9 +81,9 @@ export default function ReceptionReservations() {
                         <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>{r.customer_email}</div>
                       </td>
                       <td>Room {r.room_number} <span style={{ color:'var(--color-text-muted)', fontSize:'0.8rem' }}>({r.room_type})</span></td>
-                      <td>{fmt(r.check_in_date)}</td>
-                      <td>{fmt(r.check_out_date)}</td>
-                      <td style={{ color:'var(--color-gold)', fontWeight:700 }}>${Number(r.total_amount).toFixed(2)}</td>
+                      <td>{formatDate(r.check_in_date)}</td>
+                      <td>{formatDate(r.check_out_date)}</td>
+                      <td style={{ color:'var(--color-gold)', fontWeight:700 }}>{formatLKR(r.total_amount)}</td>
                       <td><StatusBadge status={r.status} /></td>
                       <td>
                         <div className="table-actions">
@@ -126,17 +125,17 @@ export default function ReceptionReservations() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">Reservation #{viewRes.reservation_id}</div>
-              <button className="icon-btn" onClick={() => setViewRes(null)}>✕</button>
+              <button className="icon-btn" onClick={() => setViewRes(null)}><X size={16} /></button>
             </div>
             {[
               ['Customer',   viewRes.customer_name],
               ['Email',      viewRes.customer_email],
               ['Phone',      viewRes.customer_phone || '—'],
               ['Room',       `${viewRes.room_number} (${viewRes.room_type})`],
-              ['Check-In',   fmt(viewRes.check_in_date)],
-              ['Check-Out',  fmt(viewRes.check_out_date)],
-              ['Amount',     `$${Number(viewRes.total_amount).toFixed(2)}`],
-              ['Status',     <StatusBadge status={viewRes.status} />],
+              ['Check-In',   formatDate(viewRes.check_in_date)],
+              ['Check-Out',  formatDate(viewRes.check_out_date)],
+              ['Amount',     formatLKR(viewRes.total_amount)],
+              ['Status',     <StatusBadge key="status" status={viewRes.status} />],
               ['Remarks',    viewRes.remark || '—'],
             ].map(([l, v]) => (
               <div className="detail-row" key={l}>

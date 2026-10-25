@@ -1,6 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import ThemeToggle from './ThemeToggle';
 import {
   LayoutDashboard, BedDouble, CalendarCheck, LogIn, LogOut,
   Search, BarChart2, Home, BookOpen, History, Users, UserCog,
@@ -71,7 +70,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">🏨</div>
+        <div className="sidebar-logo-monogram">LS</div>
         <div>
           <div className="sidebar-logo-text">LuxeStay</div>
           <div className="sidebar-logo-sub">Hotel Management</div>
@@ -98,9 +97,6 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
-        <div style={{ marginBottom: 8 }}>
-          <ThemeToggle />
-        </div>
         <div className="user-info-sidebar">
           <div className="user-avatar">{initials}</div>
           <div style={{ flex: 1, minWidth: 0 }}>

@@ -3,6 +3,7 @@ import { BedDouble, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import { PageLoader, EmptyState, PageHeader } from '../../components/UI';
+import { formatLKR } from '../../utils/format';
 
 const ROOM_TYPES = ['Single', 'Double', 'Suite', 'Deluxe'];
 
@@ -82,7 +83,7 @@ export default function BrowseRooms() {
                       <div className="room-number">{room.room_number ? `Room ${room.room_number}` : room.room_type}</div>
                       <div className="room-type">{room.view_label || room.bed_type || room.room_type}</div>
                     </div>
-                    <div className="room-price">LKR {Number(price).toLocaleString()}<span>/night</span></div>
+                    <div className="room-price">{formatLKR(price)}<span>/night</span></div>
                   </div>
                 {room.description && (
                   <p className="room-desc">{room.description}</p>

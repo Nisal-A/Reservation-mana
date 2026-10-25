@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Search, UserCheck } from 'lucide-react';
+import { Search, UserCheck, CheckCircle2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
-import { PageHeader, StatusBadge, EmptyState } from '../../components/UI';
+import { PageHeader, StatusBadge } from '../../components/UI';
+import { formatDate, formatLKR } from '../../utils/format';
 
 export default function CheckIn() {
   const [searchId, setSearchId] = useState('');
@@ -37,8 +38,6 @@ export default function CheckIn() {
       toast.error(err.response?.data?.message || 'Check-in failed');
     } finally { setProcessing(false); }
   };
-
-  const fmt = (d) => d ? new Date(d).toLocaleDateString() : '—';
 
   return (
     <div className="page-content slide-up">
@@ -75,9 +74,9 @@ export default function CheckIn() {
               ['Email',       reservation.customer_email],
               ['Phone',       reservation.customer_phone || '—'],
               ['Room',        `${reservation.room_number} — ${reservation.room_type}`],
-              ['Check-In',    fmt(reservation.check_in_date)],
-              ['Check-Out',   fmt(reservation.check_out_date)],
-              ['Total',       `$${Number(reservation.total_amount).toFixed(2)}`],
+              ['Check-In',    formatDate(reservation.check_in_date)],
+              ['Check-Out',   formatDate(reservation.check_out_date)],
+              ['Total',       formatLKR(reservation.total_amount)],
               ['Remarks',     reservation.remark || '—'],
             ].map(([label, value]) => (
               <div className="detail-row" key={label}>
@@ -87,8 +86,8 @@ export default function CheckIn() {
             ))}
 
             {done ? (
-              <div className="alert alert-success" style={{ marginTop: 20 }}>
-                ✅ Guest has been successfully checked in!
+              <div className="alert alert-success" style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <CheckCircle2 size={16} /> Guest has been successfully checked in!
               </div>
             ) : reservation.status === 'confirmed' ? (
               <button
@@ -102,8 +101,8 @@ export default function CheckIn() {
                 {processing ? 'Processing...' : 'Confirm Check-In'}
               </button>
             ) : (
-              <div className="alert alert-warning" style={{ marginTop: 20 }}>
-                ⚠️ Cannot check in. Status is: <strong>{reservation.status}</strong>
+              <div className="alert alert-warning" style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle size={16} /> Cannot check in. Status is: <strong>{reservation.status}</strong>
               </div>
             )}
           </div>

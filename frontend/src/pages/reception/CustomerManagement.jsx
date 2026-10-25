@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { Plus, Pencil, Trash2, Search, Users, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageLoader, EmptyState, PageHeader, ConfirmModal } from '../../components/UI';
+import { formatDate } from '../../utils/format';
 
 const emptyForm = { name: '', email: '', phone: '' };
 
@@ -16,15 +17,15 @@ export default function CustomerManagement() {
   const [formLoading, setFormLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
     try {
       const { data } = await api.get('/customers', { params: { search } });
       setCustomers(data);
     } catch { toast.error('Failed to load customers'); }
     finally  { setLoading(false); }
-  };
+  }, [search]);
 
-  useEffect(() => { fetchCustomers(); }, [search]);
+  useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
   const openAdd = () => { setEditCustomer(null); setForm(emptyForm); setShowModal(true); };
   const openEdit = (customer) => {
@@ -89,7 +90,7 @@ export default function CustomerManagement() {
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {customers.length === 0 ? (
-          <EmptyState icon="👥" title="No customers found" message="Add a customer or adjust your search." />
+          <EmptyState icon={Users} title="No customers found" message="Add a customer or adjust your search." />
         ) : (
           <div className="table-wrapper">
             <table className="table">
@@ -111,7 +112,7 @@ export default function CustomerManagement() {
                     <td>{c.email}</td>
                     <td>{c.phone || '—'}</td>
                     <td style={{ color: 'var(--color-text-muted)' }}>
-                        {new Date(c.created_at).toLocaleDateString()}
+                        {formatDate(c.created_at)}
                     </td>
                     <td>
                       <div className="table-actions">
@@ -137,7 +138,7 @@ export default function CustomerManagement() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">{editCustomer ? 'Edit Customer' : 'Add New Customer'}</div>
-              <button className="icon-btn" onClick={closeModal}>✕</button>
+              <button className="icon-btn" onClick={closeModal}><X size={16} /></button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="form-grid form-grid-1" style={{ marginBottom: 16 }}>

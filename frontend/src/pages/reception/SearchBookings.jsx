@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageHeader, StatusBadge, EmptyState } from '../../components/UI';
+import { formatDate, formatLKR } from '../../utils/format';
 
 export default function SearchBookings() {
   const [search, setSearch] = useState('');
@@ -28,8 +29,6 @@ export default function SearchBookings() {
     } catch { toast.error('Search failed'); }
     finally { setLoading(false); }
   };
-
-  const fmt = (d) => d ? new Date(d).toLocaleDateString() : '—';
 
   return (
     <div className="page-content slide-up">
@@ -73,7 +72,7 @@ export default function SearchBookings() {
             Found {results.length} reservation{results.length !== 1 ? 's' : ''}
           </div>
           {results.length === 0
-            ? <EmptyState icon="🔍" title="No results" message="Try different search criteria." />
+            ? <EmptyState icon={Search} title="No results" message="Try different search criteria." />
             : (
               <div className="table-wrapper">
                 <table className="table">
@@ -89,9 +88,9 @@ export default function SearchBookings() {
                           <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>{r.customer_phone}</div>
                         </td>
                         <td>Room {r.room_number} <span style={{ color:'var(--color-text-muted)', fontSize:'0.8rem' }}>({r.room_type})</span></td>
-                        <td>{fmt(r.check_in_date)}</td>
-                        <td>{fmt(r.check_out_date)}</td>
-                        <td style={{ color:'var(--color-gold)', fontWeight:700 }}>${Number(r.total_amount).toFixed(2)}</td>
+                        <td>{formatDate(r.check_in_date)}</td>
+                        <td>{formatDate(r.check_out_date)}</td>
+                        <td style={{ color:'var(--color-gold)', fontWeight:700 }}>{formatLKR(r.total_amount)}</td>
                         <td><StatusBadge status={r.status} /></td>
                         <td style={{ color: 'var(--color-text-muted)', fontSize: '0.82rem', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {r.remark || '—'}

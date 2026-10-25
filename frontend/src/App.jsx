@@ -36,6 +36,9 @@ import Reviews      from './pages/customer/Reviews';
 // Shared (Multi-role) Pages
 import AvailabilityCalendar from './pages/shared/AvailabilityCalendar';
 
+// Dev UI Showcase
+import DevUI from './pages/dev/DevUI';
+
 function RootRedirect() {
   const { user, loading } = useAuth();
   if (loading) return <div className="loading-center"><div className="spinner" /></div>;
@@ -48,6 +51,11 @@ function AppRoutes() {
     <Routes>
       {/* Root redirect */}
       <Route path="/" element={<RootRedirect />} />
+
+      {/* Dev UI Showcase */}
+      {import.meta.env.DEV && (
+        <Route path="/dev/ui" element={<DevUI />} />
+      )}
 
       {/* Auth */}
       <Route path="/login"    element={<Login />} />

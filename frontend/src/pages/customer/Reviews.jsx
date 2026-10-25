@@ -3,41 +3,12 @@
  * Customers can rate and review their completed stays.
  */
 import { useState, useEffect } from 'react';
+import { Star, PenSquare, Clock, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
-import { PageHeader, PageLoader, EmptyState, StatusBadge } from '../../components/UI';
+import { PageHeader, PageLoader, EmptyState, StatusBadge, RatingStars } from '../../components/UI';
 import { assetUrl } from '../../config/env';
-
-// ─── Star Rating Component ────────────────────────────────────────────────────
-function StarRating({ value, onChange, size = 1.5 }) {
-  const [hover, setHover] = useState(0);
-  return (
-    <div className="star-rating">
-      {[1, 2, 3, 4, 5].map(n => (
-        <span
-          key={n}
-          className={`star ${n <= (hover || value) ? 'filled' : ''}`}
-          style={{ fontSize: `${size}rem`, cursor: onChange ? 'pointer' : 'default' }}
-          onClick={() => onChange && onChange(n)}
-          onMouseEnter={() => onChange && setHover(n)}
-          onMouseLeave={() => onChange && setHover(0)}
-        >
-          ★
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function StarDisplay({ value }) {
-  return (
-    <div className="star-display">
-      {[1,2,3,4,5].map(n => (
-        <span key={n} className={`star ${n <= value ? 'filled' : ''}`}>★</span>
-      ))}
-    </div>
-  );
-}
+import { formatDate } from '../../utils/format';
 
 export default function Reviews() {
   const [eligible, setEligible] = useState([]);
@@ -92,7 +63,6 @@ export default function Reviews() {
   if (loading) return <PageLoader />;
 
   const unreviewed = eligible.filter(e => !e.reviewed);
-  const reviewed   = eligible.filter(e => e.reviewed);
 
   return (
     <div className="page-content slide-up">
@@ -104,17 +74,21 @@ export default function Reviews() {
       {/* Eligible to review */}
       {unreviewed.length > 0 && (
         <div style={{ marginBottom: 32 }}>
-          <div className="section-title">⭐ Stays Awaiting Review</div>
+          <div className="section-title">Stays Awaiting Review</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: 16 }}>
             {unreviewed.map(r => (
               <div key={r.reservation_id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ fontWeight: 700 }}>Room {r.room_number}</div>
                 <div style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>{r.room_type}</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                  {r.check_in_date?.slice(0,10)} → {r.check_out_date?.slice(0,10)}
+                  {formatDate(r.check_in_date)} → {formatDate(r.check_out_date)}
                 </div>
-                <button className="btn btn-primary btn-sm" onClick={() => openReview(r)} style={{ marginTop: 8 }}>
-                  ✍️ Write Review
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => openReview(r)}
+                  style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                >
+                  <PenSquare size={14} /> Write Review
                 </button>
               </div>
             ))}
@@ -123,19 +97,19 @@ export default function Reviews() {
       )}
 
       {/* My submitted reviews */}
-      <div className="section-title">📋 My Submitted Reviews</div>
+      <div className="section-title">My Submitted Reviews</div>
       {reviews.length === 0 ? (
-        <EmptyState icon="⭐" title="No reviews yet" message="Your reviews will appear here after you write them." />
+        <EmptyState icon={Star} title="No reviews yet" message="Your reviews will appear here after you write them." />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {reviews.map(r => (
             <div key={r.review_id} className="review-card">
               <div className="review-header">
                 <div>
-                  <div style={{ fontWeight: 700 }}>Room {r.room_number} — {r.room_type}</div>
-                  <StarDisplay value={r.rating} />
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>Room {r.room_number} — {r.room_type}</div>
+                  <RatingStars value={r.rating} size={16} />
                   <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: 4 }}>
-                    {new Date(r.created_at).toLocaleDateString()}
+                    {formatDate(r.created_at)}
                   </div>
                 </div>
                 <StatusBadge status={r.status} />
@@ -143,8 +117,8 @@ export default function Reviews() {
               {r.review_text && <p className="review-text">{r.review_text}</p>}
               {r.image_url && <img src={assetUrl(r.image_url)} alt="Review" className="review-image" />}
               {r.status === 'pending' && (
-                <div className="alert alert-info" style={{ marginTop: 12, fontSize: '0.82rem' }}>
-                  ⏳ Your review is pending admin approval.
+                <div className="alert alert-info" style={{ marginTop: 12, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Clock size={14} /> Your review is pending admin approval.
                 </div>
               )}
             </div>
@@ -158,12 +132,12 @@ export default function Reviews() {
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">Review Room {selected.room_number}</div>
-              <button className="icon-btn" onClick={() => setSelected(null)}>✕</button>
+              <button className="icon-btn" onClick={() => setSelected(null)}><X size={16} /></button>
             </div>
             <form onSubmit={submit}>
               <div className="form-group" style={{ marginBottom: 16, alignItems: 'flex-start' }}>
                 <label className="form-label">Your Rating *</label>
-                <StarRating value={rating} onChange={setRating} />
+                <RatingStars value={rating} onChange={setRating} interactive size={24} />
                 {rating > 0 && (
                   <div style={{ fontSize: '0.82rem', color: 'var(--color-gold)', marginTop: 4 }}>
                     {['','Very Bad','Bad','Average','Good','Excellent'][rating]}
@@ -181,7 +155,7 @@ export default function Reviews() {
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setSelected(null)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={submitting || rating === 0}>
-                  {submitting ? 'Submitting...' : '⭐ Submit Review'}
+                  {submitting ? 'Submitting...' : 'Submit Review'}
                 </button>
               </div>
             </form>

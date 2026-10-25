@@ -3,7 +3,8 @@ import { BedDouble, BookOpen, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
-import { PageLoader } from '../../components/UI';
+import { PageLoader, StatusBadge } from '../../components/UI';
+import { formatDate, formatLKR } from '../../utils/format';
 
 export default function CustomerHome() {
   const { user } = useAuth();
@@ -29,8 +30,6 @@ export default function CustomerHome() {
   }, []);
 
   if (loading) return <PageLoader />;
-
-  const fmt = (d) => d ? new Date(d).toLocaleDateString() : '—';
 
   const quickActions = [
     { icon: <BedDouble size={28} />, label: 'Browse Rooms', sub: 'See all available rooms', to: '/customer/rooms', color: '#d4a843' },
@@ -93,11 +92,11 @@ export default function CustomerHome() {
                   <tr key={r.reservation_id}>
                     <td style={{ color:'var(--color-text-muted)' }}>#{r.booking_ref || r.reservation_id}</td>
                     <td>{r.room_number ? `Room ${r.room_number}` : 'Room'} <span style={{ color:'var(--color-text-muted)', fontSize:'0.8rem' }}>({r.room_type})</span></td>
-                    <td>{fmt(r.check_in_date)}</td>
-                    <td>{fmt(r.check_out_date)}</td>
-                    <td style={{ color:'var(--color-gold)', fontWeight:700 }}>LKR {Number(r.total_amount).toFixed(2)}</td>
+                    <td>{formatDate(r.check_in_date)}</td>
+                    <td>{formatDate(r.check_out_date)}</td>
+                    <td style={{ color:'var(--color-gold)', fontWeight:700 }}>{formatLKR(r.total_amount)}</td>
                     <td>
-                      <span className={`badge badge-${r.status}`}>{r.status.replace('_', ' ')}</span>
+                      <StatusBadge status={r.status} />
                     </td>
                   </tr>
                 ))}

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Search, Eye, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageLoader, StatusBadge, EmptyState, PageHeader } from '../../components/UI';
+import { formatDate, formatLKR } from '../../utils/format';
 
 const STATUSES = ['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled'];
 
@@ -13,7 +14,7 @@ export default function AdminReservations() {
   const [filterStatus, setFilterStatus] = useState('');
   const [viewRes, setViewRes] = useState(null);
 
-  const fetchReservations = async () => {
+  const fetchReservations = useCallback(async () => {
     try {
       const params = {};
       if (filterStatus) params.status = filterStatus;
@@ -22,9 +23,11 @@ export default function AdminReservations() {
       setReservations(Array.isArray(data) ? data : (data.data || []));
     } catch { toast.error('Failed to load reservations'); }
     finally  { setLoading(false); }
-  };
+  }, [filterStatus, search]);
 
-  useEffect(() => { fetchReservations(); }, [filterStatus]);
+  useEffect(() => {
+    fetchReservations();
+  }, [fetchReservations]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -42,7 +45,7 @@ export default function AdminReservations() {
     }
   };
 
-  const fmt = (d) => d ? new Date(d).toLocaleDateString() : '—';
+  const fmt = formatDate;
 
   if (loading) return <PageLoader />;
 
@@ -68,7 +71,7 @@ export default function AdminReservations() {
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {reservations.length === 0 ? (
-          <EmptyState icon="📅" title="No reservations found" />
+          <EmptyState title="No reservations found" />
         ) : (
           <div className="table-wrapper">
             <table className="table">
@@ -99,7 +102,7 @@ export default function AdminReservations() {
                     <td>{fmt(r.check_in_date)}</td>
                     <td>{fmt(r.check_out_date)}</td>
                     <td style={{ color: 'var(--color-gold)', fontWeight: 700 }}>
-                      ${Number(r.total_amount).toFixed(2)}
+                      {formatLKR(r.total_amount)}
                     </td>
                     <td><StatusBadge status={r.status} /></td>
                     <td>
@@ -127,7 +130,7 @@ export default function AdminReservations() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">Reservation #{viewRes.reservation_id}</div>
-              <button className="icon-btn" onClick={() => setViewRes(null)}>✕</button>
+              <button className="icon-btn" onClick={() => setViewRes(null)}><X size={15} /></button>
             </div>
             <div>
               {[
@@ -137,8 +140,8 @@ export default function AdminReservations() {
                 ['Room',       `${viewRes.room_number} (${viewRes.room_type})`],
                 ['Check-In',   fmt(viewRes.check_in_date)],
                 ['Check-Out',  fmt(viewRes.check_out_date)],
-                ['Amount',     `$${Number(viewRes.total_amount).toFixed(2)}`],
-                ['Status',     <StatusBadge status={viewRes.status} />],
+                ['Amount',     formatLKR(viewRes.total_amount)],
+                ['Status',     <StatusBadge key="status" status={viewRes.status} />],
                 ['Remarks',    viewRes.remark || '—'],
               ].map(([label, value]) => (
                 <div className="detail-row" key={label}>

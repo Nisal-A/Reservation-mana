@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { X, Eye } from 'lucide-react';
+import { X, Eye, Calendar, MessageSquare } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageLoader, StatusBadge, EmptyState, PageHeader, ConfirmModal } from '../../components/UI';
+import { formatLKR, formatDate, formatDateTime, nightsBetween } from '../../utils/format';
 
 export default function MyBookings() {
   const [reservations, setReservations] = useState([]);
@@ -34,8 +35,6 @@ export default function MyBookings() {
     }
   };
 
-  const fmt = (d) => d ? new Date(d).toLocaleDateString() : '—';
-
   const filtered = filterStatus ? reservations.filter((r) => r.status === filterStatus) : reservations;
 
   if (loading) return <PageLoader />;
@@ -58,8 +57,11 @@ export default function MyBookings() {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState icon="📅" title="No bookings found"
-          message="You haven't made any reservations yet. Browse our rooms to get started!" />
+        <EmptyState
+          icon={Calendar}
+          title="No bookings found"
+          message="You haven't made any reservations yet. Browse our rooms to get started!"
+        />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {filtered.map((r) => (
@@ -73,23 +75,30 @@ export default function MyBookings() {
                     <StatusBadge status={r.status} />
                   </div>
                   <div style={{ display: 'flex', gap: 24, color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
-                    <span>📅 Check-In: <strong style={{ color:'var(--color-text)' }}>{fmt(r.check_in_date)}</strong></span>
-                    <span>📅 Check-Out: <strong style={{ color:'var(--color-text)' }}>{fmt(r.check_out_date)}</strong></span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Calendar size={13} style={{ color: 'var(--gold)' }} />
+                      Check-In: <strong style={{ color:'var(--color-text)' }}>{formatDate(r.check_in_date)}</strong>
+                    </span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Calendar size={13} style={{ color: 'var(--gold)' }} />
+                      Check-Out: <strong style={{ color:'var(--color-text)' }}>{formatDate(r.check_out_date)}</strong>
+                    </span>
                     <span>
                       Nights: <strong style={{ color:'var(--color-text)' }}>
-                        {Math.round((new Date(r.check_out_date) - new Date(r.check_in_date)) / 86400000)}
+                        {nightsBetween(r.check_in_date, r.check_out_date)}
                       </strong>
                     </span>
                   </div>
                   {r.remark && (
-                    <div style={{ marginTop: 8, fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
-                      💬 {r.remark}
+                    <div style={{ marginTop: 8, fontSize: '0.82rem', color: 'var(--color-text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <MessageSquare size={13} />
+                      {r.remark}
                     </div>
                   )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
                   <div style={{ color: 'var(--color-gold)', fontWeight: 800, fontSize: '1.3rem' }}>
-                    ${Number(r.total_amount).toFixed(2)}
+                    {formatLKR(r.total_amount)}
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="icon-btn" onClick={() => setViewRes(r)} title="Details">
@@ -119,18 +128,18 @@ export default function MyBookings() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">Reservation #{viewRes.reservation_id}</div>
-              <button className="icon-btn" onClick={() => setViewRes(null)}>✕</button>
+              <button className="icon-btn" onClick={() => setViewRes(null)}><X size={16} /></button>
             </div>
             {[
               ['Room',       `${viewRes.room_number} (${viewRes.room_type})`],
-              ['Check-In',   fmt(viewRes.check_in_date)],
-              ['Check-Out',  fmt(viewRes.check_out_date)],
-              ['Nights',     Math.round((new Date(viewRes.check_out_date) - new Date(viewRes.check_in_date)) / 86400000)],
-              ['Rate/Night', `$${Number(viewRes.room_price).toFixed(2)}`],
-              ['Total',      `$${Number(viewRes.total_amount).toFixed(2)}`],
-              ['Status',     <StatusBadge status={viewRes.status} />],
+              ['Check-In',   formatDate(viewRes.check_in_date)],
+              ['Check-Out',  formatDate(viewRes.check_out_date)],
+              ['Nights',     nightsBetween(viewRes.check_in_date, viewRes.check_out_date)],
+              ['Rate/Night', formatLKR(viewRes.room_price)],
+              ['Total',      formatLKR(viewRes.total_amount)],
+              ['Status',     <StatusBadge key="status" status={viewRes.status} />],
               ['Remarks',    viewRes.remark || '—'],
-              ['Booked On',  fmt(viewRes.created_at)],
+              ['Booked On',  formatDateTime(viewRes.created_at)],
             ].map(([l, v]) => (
               <div className="detail-row" key={l}>
                 <span className="detail-label">{l}</span>

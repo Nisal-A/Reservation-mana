@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, Search, BedDouble, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageLoader, StatusBadge, EmptyState, PageHeader, ConfirmModal } from '../../components/UI';
+import { formatLKR } from '../../utils/format';
 
 const ROOM_TYPES = ['Single', 'Double', 'Suite', 'Deluxe'];
 const STATUSES = ['available', 'occupied', 'maintenance'];
@@ -148,7 +149,7 @@ export default function RoomManagement() {
                   <tr key={room.room_id}>
                     <td><strong>{room.room_number}</strong></td>
                     <td>{room.room_type}</td>
-                    <td style={{ color: 'var(--color-gold)', fontWeight: 700 }}>LKR {Number(room.price).toFixed(2)}</td>
+                    <td style={{ color: 'var(--color-gold)', fontWeight: 700 }}>{formatLKR(room.price)}</td>
                     <td><StatusBadge status={room.status} /></td>
                     <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
                       {room.description || '—'}
@@ -193,7 +194,7 @@ export default function RoomManagement() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Price per Night ($) *</label>
+                  <label className="form-label">Price per Night (LKR) *</label>
                   <input className="form-input" type="number" min="0" step="0.01" placeholder="120.00" value={form.price} onChange={set('price')} required />
                 </div>
                 <div className="form-group">

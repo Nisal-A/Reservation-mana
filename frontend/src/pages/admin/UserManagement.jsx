@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageLoader, StatusBadge, EmptyState, PageHeader, ConfirmModal } from '../../components/UI';
+import { formatDate } from '../../utils/format';
 
 const ROLES = ['admin', 'reception', 'customer'];
 
@@ -102,7 +103,7 @@ export default function UserManagement() {
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {filtered.length === 0 ? (
-          <EmptyState icon="👤" title="No users found" message="Add a user or adjust your filters." />
+          <EmptyState title="No users found" message="Add a user or adjust your filters." />
         ) : (
           <div className="table-wrapper">
             <table className="table">
@@ -122,7 +123,7 @@ export default function UserManagement() {
                     <td><strong>{user.username}</strong></td>
                     <td><StatusBadge status={user.role} /></td>
                     <td style={{ color: 'var(--color-text-muted)' }}>
-                        {new Date(user.created_at).toLocaleDateString()}
+                      {formatDate(user.created_at)}
                     </td>
                     <td>
                       <div className="table-actions">
@@ -148,7 +149,7 @@ export default function UserManagement() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">{editUser ? 'Edit User' : 'Add New User'}</div>
-              <button className="icon-btn" onClick={closeModal}>✕</button>
+              <button className="icon-btn" onClick={closeModal}><X size={16} /></button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="form-grid form-grid-1" style={{ marginBottom: 16 }}>

@@ -5,9 +5,10 @@
  * click-room drawer showing reservation list with guest names.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, X, CalendarCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, CalendarCheck, Calendar } from 'lucide-react';
 import api from '../../api/axios';
-import { PageHeader, PageLoader, EmptyState } from '../../components/UI';
+import { PageHeader, PageLoader, EmptyState, StatusBadge } from '../../components/UI';
+import { formatDate } from '../../utils/format';
 import toast from 'react-hot-toast';
 
 const STATUS_COLORS = {
@@ -119,7 +120,7 @@ export default function AvailabilityCalendar() {
 
       {/* Calendar Grid */}
       {(!data?.rooms || data.rooms.length === 0) ? (
-        <EmptyState icon="📅" title="No rooms found" message="Adjust filters or add rooms." />
+        <EmptyState icon={Calendar} title="No rooms found" message="Adjust filters or add rooms." />
       ) : (
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           {/* Day header */}
@@ -193,7 +194,7 @@ export default function AvailabilityCalendar() {
               Reservations in {MONTH_NAMES[month - 1]} {year}
             </div>
             {drawer.reservations.length === 0 ? (
-              <EmptyState icon="🗓️" title="No reservations this month" message="This room is free all month." />
+              <EmptyState icon={Calendar} title="No reservations this month" message="This room is free all month." />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {drawer.reservations.map(r => (
@@ -202,10 +203,10 @@ export default function AvailabilityCalendar() {
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{r.guest_name}</div>
                         <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
-                          {r.check_in_date} → {r.check_out_date}
+                          {formatDate(r.check_in_date)} → {formatDate(r.check_out_date)}
                         </div>
                       </div>
-                      <span className={`badge badge-${r.status}`}>{r.status.replace('_',' ')}</span>
+                      <StatusBadge status={r.status} />
                     </div>
                   </div>
                 ))}

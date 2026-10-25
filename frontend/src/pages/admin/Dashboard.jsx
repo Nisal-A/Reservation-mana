@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import {
   BedDouble, CalendarCheck, DollarSign, Users,
-  TrendingUp, LogIn, LogOut, Clock, Star, Percent
+  TrendingUp, LogIn, LogOut, Clock, Star
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area,
@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import api from '../../api/axios';
 import { PageLoader, StatCard } from '../../components/UI';
+import { formatLKR } from '../../utils/format';
 
 const GOLD    = '#d4a843';
 const COLORS  = ['#d4a843','#3b82f6','#10b981','#a78bfa','#f59e0b','#ef4444'];
@@ -58,16 +59,16 @@ export default function AdminDashboard() {
   if (loading || !overview) return <PageLoader />;
 
   const stats = [
-    { icon: <DollarSign size={20}/>, label: 'Total Revenue',       value: `$${Number(overview.total_revenue).toLocaleString()}`,  color: GOLD,      bg: 'rgba(212,168,67,0.12)' },
-    { icon: <DollarSign size={20}/>, label: "Today's Revenue",     value: `$${Number(overview.today_revenue).toLocaleString()}`,  color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
-    { icon: <DollarSign size={20}/>, label: 'Month Revenue',       value: `$${Number(overview.month_revenue).toLocaleString()}`,  color: '#3b82f6', bg: 'rgba(59,130,246,0.12)'  },
+    { icon: <DollarSign size={20}/>, label: 'Total Revenue',       value: formatLKR(overview.total_revenue),  color: GOLD,      bg: 'rgba(212,168,67,0.12)' },
+    { icon: <DollarSign size={20}/>, label: "Today's Revenue",     value: formatLKR(overview.today_revenue),  color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
+    { icon: <DollarSign size={20}/>, label: 'Month Revenue',       value: formatLKR(overview.month_revenue),  color: '#3b82f6', bg: 'rgba(59,130,246,0.12)'  },
     { icon: <CalendarCheck size={20}/>, label: 'Total Reservations', value: overview.total_reservations,  color: '#a78bfa', bg: 'rgba(139,92,246,0.12)' },
     { icon: <Users size={20}/>,      label: 'Active Guests',       value: overview.active_guests,        color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
     { icon: <BedDouble size={20}/>,  label: 'Available Rooms',     value: overview.available_rooms,      color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
     { icon: <BedDouble size={20}/>,  label: 'Occupied Rooms',      value: overview.occupied_rooms,       color: '#ef4444', bg: 'rgba(239,68,68,0.12)'  },
     { icon: <Clock size={20}/>,      label: 'Pending Reservations', value: overview.pending_reservations, color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
     { icon: <TrendingUp size={20}/>, label: 'Occupancy Rate',      value: `${overview.occupancy_rate}%`, color: '#3b82f6', bg: 'rgba(59,130,246,0.12)'  },
-    { icon: <Star size={20}/>,       label: 'Avg Guest Rating',    value: `${overview.avg_rating} ⭐`,   color: GOLD,      bg: 'rgba(212,168,67,0.12)' },
+    { icon: <Star size={20}/>,       label: 'Avg Guest Rating',    value: `${overview.avg_rating}`,       color: GOLD,      bg: 'rgba(212,168,67,0.12)' },
     { icon: <LogIn size={20}/>,      label: "Today's Check-Ins",   value: overview.today_checkins,       color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
     { icon: <LogOut size={20}/>,     label: "Today's Check-Outs",  value: overview.today_checkouts,      color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
   ];
@@ -89,7 +90,7 @@ export default function AdminDashboard() {
       {/* Revenue + Reservations */}
       <div className="analytics-grid-2">
         <div className="chart-wrapper">
-          <div className="chart-title">📈 Revenue Trend (12 months)</div>
+          <div className="chart-title">Revenue Trend (12 months)</div>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={revenue}>
               <defs>
@@ -101,14 +102,14 @@ export default function AdminDashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
               <XAxis dataKey="month" tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} />
               <YAxis tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} />
-              <Tooltip contentStyle={tooltipStyle} formatter={v => [`$${Number(v).toLocaleString()}`, 'Revenue']} />
+              <Tooltip contentStyle={tooltipStyle} formatter={v => [formatLKR(v), 'Revenue']} />
               <Area type="monotone" dataKey="revenue" stroke={GOLD} strokeWidth={3} fill="url(#goldGrad)" dot={{ fill: GOLD, r: 4 }} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
         <div className="chart-wrapper">
-          <div className="chart-title">📊 Monthly Reservations</div>
+          <div className="chart-title">Monthly Reservations</div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={resMonthly}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
@@ -126,7 +127,7 @@ export default function AdminDashboard() {
       {/* Occupancy + Room Types */}
       <div className="analytics-grid-2">
         <div className="chart-wrapper">
-          <div className="chart-title">🏨 Occupancy Rate (30 days)</div>
+          <div className="chart-title">Occupancy Rate (30 days)</div>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={occupancy}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
@@ -139,7 +140,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="chart-wrapper">
-          <div className="chart-title">🛏️ Room Type Popularity</div>
+          <div className="chart-title">Room Type Popularity</div>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie data={roomTypes} dataKey="bookings" nameKey="room_type" cx="50%" cy="50%" outerRadius={80}
@@ -155,7 +156,7 @@ export default function AdminDashboard() {
       {/* Cancellation Rate + Avg Stay */}
       <div className="analytics-grid-2">
         <div className="chart-wrapper">
-          <div className="chart-title">❌ Cancellation Rate (%)</div>
+          <div className="chart-title">Cancellation Rate (%)</div>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={cancellation}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
@@ -168,7 +169,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="chart-wrapper">
-          <div className="chart-title">⏱️ Average Stay Duration (nights)</div>
+          <div className="chart-title">Average Stay Duration (nights)</div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={avgStay}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
@@ -184,13 +185,13 @@ export default function AdminDashboard() {
       {/* Revenue by Room Type + Top Customers */}
       <div className="analytics-grid-2">
         <div className="chart-wrapper">
-          <div className="chart-title">💰 Revenue by Room Type</div>
+          <div className="chart-title">Revenue by Room Type</div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={revByType} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
               <XAxis type="number" tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} />
               <YAxis dataKey="room_type" type="category" tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} width={70} />
-              <Tooltip contentStyle={tooltipStyle} formatter={v => [`$${Number(v).toLocaleString()}`, 'Revenue']} />
+              <Tooltip contentStyle={tooltipStyle} formatter={v => [formatLKR(v), 'Revenue']} />
               <Bar dataKey="revenue" fill={GOLD} radius={[0,4,4,0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -198,7 +199,7 @@ export default function AdminDashboard() {
 
         {/* Top Customers Table */}
         <div className="chart-wrapper">
-          <div className="chart-title">🏆 Top Customers</div>
+          <div className="chart-title">Top Customers</div>
           <div className="table-wrapper" style={{ maxHeight: 200, overflow: 'auto' }}>
             <table className="table" style={{ fontSize: '0.82rem' }}>
               <thead>
@@ -213,7 +214,7 @@ export default function AdminDashboard() {
                       <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>{c.email}</div>
                     </td>
                     <td>{c.bookings}</td>
-                    <td style={{ color: 'var(--color-gold)', fontWeight: 700 }}>${Number(c.total_spend).toLocaleString()}</td>
+                    <td style={{ color: 'var(--color-gold)', fontWeight: 700 }}>{formatLKR(c.total_spend)}</td>
                   </tr>
                 ))}
               </tbody>

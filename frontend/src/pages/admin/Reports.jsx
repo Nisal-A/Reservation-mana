@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { BarChart2, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { Download, FileSpreadsheet, FileText } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import api from '../../api/axios';
 import { PageLoader, PageHeader } from '../../components/UI';
+import { formatLKR } from '../../utils/format';
 import toast from 'react-hot-toast';
 
 const COLORS = ['#d4a843', '#3b82f6', '#10b981', '#a78bfa', '#f59e0b'];
@@ -70,7 +71,7 @@ export default function Reports() {
       {/* Summary Cards */}
       <div className="stats-grid" style={{ marginBottom: 24 }}>
         {[
-          { label: 'Total Revenue', value: `$${Number(summary.total_revenue).toLocaleString()}`, color: '#d4a843' },
+          { label: 'Total Revenue', value: formatLKR(summary.total_revenue), color: '#d4a843' },
           { label: 'Total Bookings', value: summary.total_reservations, color: '#3b82f6' },
           { label: 'Occupancy Rate', value: `${summary.occupancy_rate}%`, color: '#10b981' },
           { label: 'Available Rooms', value: summary.available_rooms, color: '#a78bfa' },
@@ -84,7 +85,7 @@ export default function Reports() {
 
       {/* Revenue Trend */}
       <div className="chart-wrapper">
-        <div className="chart-title">📈 Monthly Revenue Trend</div>
+        <div className="chart-title">Monthly Revenue Trend</div>
         <ResponsiveContainer width="100%" height={240}>
           <LineChart data={revenue}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
@@ -92,7 +93,7 @@ export default function Reports() {
             <YAxis tick={{ fill: '#8892a4', fontSize: 12 }} />
             <Tooltip
               contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
-              formatter={(v) => [`$${Number(v).toLocaleString()}`, 'Revenue']}
+              formatter={(v) => [formatLKR(v), 'Revenue']}
             />
             <Line type="monotone" dataKey="revenue" stroke="#d4a843" strokeWidth={3} dot={{ fill: '#d4a843', r: 5 }} />
           </LineChart>
@@ -131,7 +132,7 @@ export default function Reports() {
       {/* Room Performance Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--color-border)' }}>
-          <div className="chart-title" style={{ margin: 0 }}>🏨 Room Performance</div>
+          <div className="chart-title" style={{ margin: 0 }}>Room Performance</div>
         </div>
         <div className="table-wrapper">
           <table className="table">
@@ -149,9 +150,9 @@ export default function Reports() {
                 <tr key={r.room_number}>
                   <td><strong>Room {r.room_number}</strong></td>
                   <td>{r.room_type}</td>
-                  <td style={{ color: 'var(--color-gold)', fontWeight: 600 }}>${r.price}</td>
+                  <td style={{ color: 'var(--color-gold)', fontWeight: 600 }}>{formatLKR(r.price)}</td>
                   <td>{r.total_bookings}</td>
-                  <td style={{ color: 'var(--color-gold)', fontWeight: 700 }}>${Number(r.total_revenue).toLocaleString()}</td>
+                  <td style={{ color: 'var(--color-gold)', fontWeight: 700 }}>{formatLKR(r.total_revenue)}</td>
                 </tr>
               ))}
             </tbody>

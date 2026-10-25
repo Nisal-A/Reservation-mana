@@ -32,7 +32,7 @@ export default function Login() {
     <div className="login-page">
       <div className="login-box">
         <div className="login-logo">
-          <div className="login-logo-icon">🏨</div>
+          <div className="sidebar-logo-monogram" style={{ width: 52, height: 52, fontSize: '1.35rem', margin: '0 auto 14px' }}>LS</div>
           <h1>LuxeStay HMS</h1>
           <p>Hotel Management System</p>
         </div>

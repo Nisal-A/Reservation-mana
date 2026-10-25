@@ -4,6 +4,7 @@ import { Search, CalendarCheck, CheckCircle, BedDouble, Calendar } from 'lucide-
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageHeader } from '../../components/UI';
+import { formatDate, formatLKR } from '../../utils/format';
 
 export default function BookRoom() {
   const [searchParams] = useSearchParams();
@@ -76,9 +77,9 @@ export default function BookRoom() {
             {[
               ['Booking Ref',   success.booking_ref || success.reservation_id],
               ['Room',          success.room_number ? `Room ${success.room_number}` : 'Assigned on arrival'],
-              ['Check-In',      success.check_in_date],
-              ['Check-Out',     success.check_out_date],
-              ['Total',         `LKR ${Number(success.total_amount || success.total_price || 0).toLocaleString()}`],
+              ['Check-In',      formatDate(success.check_in_date)],
+              ['Check-Out',     formatDate(success.check_out_date)],
+              ['Total',         formatLKR(success.total_amount || success.total_price || 0)],
               ['Status',        success.status],
             ].map(([l, v]) => (
               <div className="billing-row" key={l}>
@@ -155,7 +156,7 @@ export default function BookRoom() {
                       <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{r.description || r.view_label || r.bed_type}</div>
                     </div>
                     <div style={{ color: 'var(--color-gold)', fontWeight: 800, fontSize: '1.1rem' }}>
-                      LKR {Number(r.price_per_night || r.price).toLocaleString()}<span style={{ fontSize: '0.7rem', fontWeight: 400, color: 'var(--color-text-muted)' }}>/night</span>
+                      {formatLKR(r.price_per_night || r.price)}<span style={{ fontSize: '0.7rem', fontWeight: 400, color: 'var(--color-text-muted)' }}>/night</span>
                     </div>
                   </label>
                 ))}
@@ -192,7 +193,7 @@ export default function BookRoom() {
                 </div>
                 <div className="billing-row">
                   <span style={{ color:'var(--color-text-muted)' }}>Rate</span>
-                  <span>LKR {Number(selectedRoom.price_per_night || selectedRoom.price).toLocaleString()}/night</span>
+                  <span>{formatLKR(selectedRoom.price_per_night || selectedRoom.price)}/night</span>
                 </div>
                 <div className="billing-row">
                   <span style={{ color:'var(--color-text-muted)' }}>Nights</span>
@@ -200,7 +201,7 @@ export default function BookRoom() {
                 </div>
                 <div className="billing-row">
                   <span style={{ fontWeight:700 }}>Total</span>
-                  <span className="billing-total">LKR {Number(total).toFixed(2)}</span>
+                  <span className="billing-total">{formatLKR(total)}</span>
                 </div>
               </div>
             ) : (

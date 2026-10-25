@@ -3,6 +3,7 @@ import { CalendarCheck, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageHeader } from '../../components/UI';
+import { formatLKR, nightsBetween, todayISO } from '../../utils/format';
 
 export default function CreateReservation() {
   const [customers, setCustomers] = useState([]);
@@ -27,7 +28,7 @@ export default function CreateReservation() {
     if (!form.check_in_date || !form.check_out_date) {
       return toast.error('Select check-in and check-out dates first');
     }
-    if (new Date(form.check_out_date) <= new Date(form.check_in_date)) {
+    if (form.check_out_date <= form.check_in_date) {
       return toast.error('Check-out must be after check-in');
     }
     setChecking(true);
@@ -45,11 +46,11 @@ export default function CreateReservation() {
 
   const nights = () => {
     if (!form.check_in_date || !form.check_out_date) return 0;
-    return Math.max(0, Math.round((new Date(form.check_out_date) - new Date(form.check_in_date)) / 86400000));
+    return nightsBetween(form.check_in_date, form.check_out_date);
   };
 
   const selectedRoom = availableRooms.find((r) => r.room_id === Number(form.room_id));
-  const total = selectedRoom ? nights() * selectedRoom.price : 0;
+  const total = selectedRoom ? nights() * (selectedRoom.price_per_night || selectedRoom.price || 0) : 0;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,11 +99,11 @@ export default function CreateReservation() {
           <div className="form-grid form-grid-2">
             <div className="form-group">
               <label className="form-label">Check-In Date *</label>
-              <input className="form-input" type="date" min={new Date().toISOString().split('T')[0]} value={form.check_in_date} onChange={set('check_in_date')} required />
+              <input className="form-input" type="date" min={todayISO()} value={form.check_in_date} onChange={set('check_in_date')} required />
             </div>
             <div className="form-group">
               <label className="form-label">Check-Out Date *</label>
-              <input className="form-input" type="date" min={form.check_in_date || new Date().toISOString().split('T')[0]} value={form.check_out_date} onChange={set('check_out_date')} required />
+              <input className="form-input" type="date" min={form.check_in_date || todayISO()} value={form.check_out_date} onChange={set('check_out_date')} required />
             </div>
           </div>
 
@@ -118,7 +119,7 @@ export default function CreateReservation() {
                 <option value="">— Select Room —</option>
                 {availableRooms.map((r) => (
                   <option key={r.room_id} value={r.room_id}>
-                    Room {r.room_number} — {r.room_type} — ${r.price}/night
+                    Room {r.room_number} — {r.room_type} — {formatLKR(r.price)}/night
                   </option>
                 ))}
               </select>
@@ -156,7 +157,7 @@ export default function CreateReservation() {
                   </div>
                   <div className="billing-row">
                     <span className="text-muted">Rate</span>
-                    <span>LKR {Number(selectedRoom.price_per_night || selectedRoom.price).toLocaleString()}/night</span>
+                    <span>{formatLKR(selectedRoom.price_per_night || selectedRoom.price)}/night</span>
                   </div>
                   <div className="billing-row">
                     <span className="text-muted">Nights</span>
@@ -164,7 +165,7 @@ export default function CreateReservation() {
                   </div>
                   <div className="billing-row">
                     <span className="text-muted font-bold">Total</span>
-                    <span className="billing-total">LKR {Number(total).toFixed(2)}</span>
+                    <span className="billing-total">{formatLKR(total)}</span>
                   </div>
                 </div>
               </div>

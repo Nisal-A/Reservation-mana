@@ -3,7 +3,7 @@
  * Allows CRUD on pricing rules (weekend surcharge, peak season, etc.)
  */
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Info, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageHeader, PageLoader, EmptyState, ConfirmModal } from '../../components/UI';
@@ -108,7 +108,7 @@ export default function PricingRules() {
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {rules.length === 0 ? (
-          <EmptyState icon="💰" title="No pricing rules" message="Add a rule to start dynamic pricing." />
+          <EmptyState title="No pricing rules" message="Add a rule to start dynamic pricing." />
         ) : (
           <div className="table-wrapper">
             <table className="table">
@@ -169,7 +169,8 @@ export default function PricingRules() {
 
       {/* Info card */}
       <div className="alert alert-info" style={{ marginTop: 20 }}>
-        ℹ️ <strong>Pricing Engine:</strong> Rules are applied automatically when customers select dates.
+        <Info size={16} style={{ display: 'inline', verticalAlign: 'text-bottom', marginRight: 6 }} />
+        <strong>Pricing Engine:</strong> Rules are applied automatically when customers select dates.
         Positive values add a surcharge; negative values apply a discount. A 10% tax is applied on top of all pricing.
       </div>
 
@@ -179,7 +180,7 @@ export default function PricingRules() {
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">{editRule ? 'Edit Pricing Rule' : 'New Pricing Rule'}</div>
-              <button className="icon-btn" onClick={close}>✕</button>
+              <button className="icon-btn" onClick={close}><X size={16} /></button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="form-group" style={{ marginBottom: 14 }}>

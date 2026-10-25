@@ -31,7 +31,7 @@ export default function Register() {
     <div className="login-page">
       <div className="login-box" style={{ maxWidth: 480 }}>
         <div className="login-logo">
-          <div className="login-logo-icon">🏨</div>
+          <div className="sidebar-logo-monogram" style={{ width: 52, height: 52, fontSize: '1.35rem', margin: '0 auto 14px' }}>LS</div>
           <h1>Create Account</h1>
           <p>Register as a customer to book rooms</p>
         </div>

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Search, LogOut, Printer } from 'lucide-react';
+import { Search, LogOut, Printer, CheckCircle2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageHeader, StatusBadge } from '../../components/UI';
+import { formatDate, formatLKR, nightsBetween } from '../../utils/format';
 
 export default function CheckOut() {
   const [searchId, setSearchId] = useState('');
@@ -43,13 +44,6 @@ export default function CheckOut() {
     } finally { setProcessing(false); }
   };
 
-  const nights = () => {
-    if (!reservation) return 0;
-    return Math.round((new Date(reservation.check_out_date) - new Date(reservation.check_in_date)) / 86400000);
-  };
-
-  const fmt = (d) => d ? new Date(d).toLocaleDateString() : '—';
-
   return (
     <div className="page-content slide-up">
       <PageHeader title="Guest Check-Out" subtitle="Search reservation by booking reference to process check-out and generate bill" />
@@ -81,7 +75,7 @@ export default function CheckOut() {
 
             {/* Guest Info */}
             <div style={{ marginBottom: 20 }}>
-              <div className="section-title">👤 Guest Information</div>
+              <div className="section-title">Guest Information</div>
               {[
                 ['Name',  reservation.customer_name],
                 ['Email', reservation.customer_email],
@@ -96,7 +90,7 @@ export default function CheckOut() {
 
             {/* Billing Summary */}
             <div style={{ marginBottom: 20 }}>
-              <div className="section-title">🧾 Billing Summary</div>
+              <div className="section-title">Billing Summary</div>
               <div className="billing-card">
                 <div className="billing-row">
                   <span>Room</span>
@@ -104,24 +98,24 @@ export default function CheckOut() {
                 </div>
                 <div className="billing-row">
                   <span>Check-In</span>
-                  <span>{fmt(reservation.check_in_date)}</span>
+                  <span>{formatDate(reservation.check_in_date)}</span>
                 </div>
                 <div className="billing-row">
                   <span>Check-Out</span>
-                  <span>{fmt(reservation.check_out_date)}</span>
+                  <span>{formatDate(reservation.check_out_date)}</span>
                 </div>
                 <div className="billing-row">
                   <span>Nights</span>
-                  <span>{nights()}</span>
+                  <span>{nightsBetween(reservation.check_in_date, reservation.check_out_date)}</span>
                 </div>
                 <div className="billing-row">
                   <span>Rate per Night</span>
-                  <span>${Number(reservation.room_price).toFixed(2)}</span>
+                  <span>{formatLKR(reservation.room_price)}</span>
                 </div>
                 <div className="billing-row" style={{ paddingTop: 12 }}>
                   <span style={{ fontWeight: 700, fontSize: '1rem' }}>Total Amount</span>
                   <span className="billing-total">
-                    ${Number(bill ?? reservation.total_amount).toFixed(2)}
+                    {formatLKR(bill ?? reservation.total_amount)}
                   </span>
                 </div>
               </div>
@@ -129,7 +123,10 @@ export default function CheckOut() {
 
             {reservation.status === 'checked_out' ? (
               <div className="alert alert-success" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>✅ Guest has been checked out. Total billed: <strong>${Number(bill ?? reservation.total_amount).toFixed(2)}</strong></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <CheckCircle2 size={16} />
+                  Guest has been checked out. Total billed: <strong>{formatLKR(bill ?? reservation.total_amount)}</strong>
+                </div>
                 <button className="btn btn-secondary btn-sm" onClick={() => window.print()}>
                   <Printer size={16} /> Print Receipt
                 </button>
@@ -160,8 +157,8 @@ export default function CheckOut() {
                 </button>
               </>
             ) : (
-              <div className="alert alert-warning">
-                ⚠️ Cannot check out. Current status: <strong>{reservation.status}</strong>
+              <div className="alert alert-warning" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle size={16} /> Cannot check out. Current status: <strong>{reservation.status}</strong>
               </div>
             )}
           </div>

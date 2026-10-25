@@ -1,23 +1,10 @@
-/**
- * ReviewsAdmin.jsx — Admin review moderation dashboard.
- * Approve, reject, or delete customer reviews.
- */
-import { useState, useEffect } from 'react';
-import { Check, X, Trash2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Check, X, Trash2, Star, Clock, CheckCircle, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
-import { PageHeader, PageLoader, EmptyState, StatusBadge, StatCard, ConfirmModal } from '../../components/UI';
+import { PageHeader, PageLoader, EmptyState, StatusBadge, StatCard, ConfirmModal, RatingStars } from '../../components/UI';
 import { assetUrl } from '../../config/env';
-
-function StarDisplay({ value }) {
-  return (
-    <div className="star-display" style={{ display: 'inline-flex', gap: 2 }}>
-      {[1,2,3,4,5].map(n => (
-        <span key={n} className={`star ${n <= value ? 'filled' : ''}`} style={{ fontSize: '0.9rem' }}>★</span>
-      ))}
-    </div>
-  );
-}
+import { formatDate } from '../../utils/format';
 
 export default function ReviewsAdmin() {
   const [reviews,     setReviews]     = useState([]);
@@ -25,7 +12,7 @@ export default function ReviewsAdmin() {
   const [filterStatus, setFilterStatus] = useState('pending');
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const fetch = async () => {
+  const fetchReviews = useCallback(async () => {
     setLoading(true);
     try {
       const params = filterStatus ? { status: filterStatus } : {};
@@ -33,15 +20,15 @@ export default function ReviewsAdmin() {
       setReviews(data);
     } catch { toast.error('Failed to load reviews'); }
     finally  { setLoading(false); }
-  };
+  }, [filterStatus]);
 
-  useEffect(() => { fetch(); }, [filterStatus]);
+  useEffect(() => { fetchReviews(); }, [fetchReviews]);
 
   const approve = async (id) => {
     try {
       await api.patch(`/reviews/${id}/approve`);
       toast.success('Review approved');
-      fetch();
+      fetchReviews();
     } catch { toast.error('Failed'); }
   };
 
@@ -49,7 +36,7 @@ export default function ReviewsAdmin() {
     try {
       await api.patch(`/reviews/${id}/reject`);
       toast.success('Review rejected');
-      fetch();
+      fetchReviews();
     } catch { toast.error('Failed'); }
   };
 
@@ -58,7 +45,7 @@ export default function ReviewsAdmin() {
       await api.delete(`/reviews/${deleteTarget.review_id}`);
       toast.success('Review deleted');
       setDeleteTarget(null);
-      fetch();
+      fetchReviews();
     } catch { toast.error('Delete failed'); setDeleteTarget(null); }
   };
 
@@ -79,10 +66,10 @@ export default function ReviewsAdmin() {
       />
 
       <div className="stats-grid" style={{ marginBottom: 24 }}>
-        <StatCard icon="⭐" label="Avg Rating" value={avgRating} color="var(--color-gold)" bg="var(--color-gold-glow)" />
-        <StatCard icon="⏳" label="Pending" value={pending} color="var(--color-warning)" bg="var(--color-warning-bg)" />
-        <StatCard icon="✅" label="Approved" value={approved} color="var(--color-success)" bg="var(--color-success-bg)" />
-        <StatCard icon="📝" label="Total" value={reviews.length} color="var(--color-info)" bg="var(--color-info-bg)" />
+        <StatCard icon={Star} label="Avg Rating" value={avgRating} color="var(--color-gold)" bg="var(--color-gold-glow)" />
+        <StatCard icon={Clock} label="Pending" value={pending} color="var(--color-warning)" bg="var(--color-warning-bg)" />
+        <StatCard icon={CheckCircle} label="Approved" value={approved} color="var(--color-success)" bg="var(--color-success-bg)" />
+        <StatCard icon={FileText} label="Total" value={reviews.length} color="var(--color-info)" bg="var(--color-info-bg)" />
       </div>
 
       {/* Filter */}
@@ -100,7 +87,7 @@ export default function ReviewsAdmin() {
       </div>
 
       {loading ? <PageLoader /> : reviews.length === 0 ? (
-        <EmptyState icon="⭐" title="No reviews" message="No reviews match the selected filter." />
+        <EmptyState title="No reviews" message="No reviews match the selected filter." />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {reviews.map(r => (
@@ -116,12 +103,12 @@ export default function ReviewsAdmin() {
                       Room {r.room_number} — {r.room_type}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--color-text-faint)', marginTop: 2 }}>
-                      {new Date(r.created_at).toLocaleDateString()}
+                      {formatDate(r.created_at)}
                     </div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <StarDisplay value={r.rating} />
+                  <RatingStars value={r.rating} readOnly size={16} />
                   <StatusBadge status={r.status} />
                 </div>
               </div>
