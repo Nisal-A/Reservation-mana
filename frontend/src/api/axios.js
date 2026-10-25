@@ -24,7 +24,7 @@ api.interceptors.response.use(
     const url = error.config?.url || '';
 
     if (status === 401) {
-      const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
+      const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/me');
       if (!isAuthEndpoint) {
         localStorage.removeItem('hotel_token');
         localStorage.removeItem('hotel_user');

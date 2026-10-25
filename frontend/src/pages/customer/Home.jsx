@@ -47,7 +47,7 @@ export default function CustomerHome() {
       </div>
 
       {/* Stats */}
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 32 }}>
+      <div className="stats-grid" style={{ marginBottom: 32 }}>
         {[
           { label: 'Available Rooms',   value: summary.availableRooms, color: '#d4a843' },
           { label: 'Confirmed Bookings',value: summary.confirmed,      color: '#3b82f6' },
@@ -61,7 +61,7 @@ export default function CustomerHome() {
       </div>
 
       {/* Quick Actions */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 32 }}>
+      <div className="analytics-grid-3" style={{ marginBottom: 32 }}>
         {quickActions.map((a) => (
           <button
             key={a.label}

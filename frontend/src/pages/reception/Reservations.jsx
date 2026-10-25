@@ -45,7 +45,7 @@ export default function ReceptionReservations() {
         title="Reservations"
         subtitle={`${reservations.length} records`}
         action={
-          <button className="btn btn-primary" onClick={() => navigate('/reception/create-reservation')}>
+          <button className="btn btn-primary" onClick={() => navigate('/reception/new')}>
             <Plus size={16} /> New Reservation
           </button>
         }
@@ -91,14 +91,14 @@ export default function ReceptionReservations() {
                           {r.status === 'confirmed' && (
                             <button className="icon-btn" title="Check-In"
                               style={{ color:'var(--color-success)', borderColor:'rgba(16,185,129,0.3)' }}
-                              onClick={() => navigate(`/reception/checkin`)}>
+                              onClick={() => navigate('/reception/check-in')}>
                               <UserCheck size={14}/>
                             </button>
                           )}
                           {r.status === 'checked_in' && (
                             <button className="icon-btn" title="Check-Out"
                               style={{ color:'var(--color-warning)', borderColor:'rgba(245,158,11,0.3)' }}
-                              onClick={() => navigate(`/reception/checkout`)}>
+                              onClick={() => navigate('/reception/check-out')}>
                               <LogOut size={14}/>
                             </button>
                           )}

@@ -22,7 +22,6 @@ import ReceptionReservations from './pages/reception/Reservations';
 import CreateReservation   from './pages/reception/CreateReservation';
 import CheckIn             from './pages/reception/CheckIn';
 import CheckOut            from './pages/reception/CheckOut';
-import SearchBookings      from './pages/reception/SearchBookings';
 import CustomerManagement  from './pages/reception/CustomerManagement';
 
 // Customer Pages
@@ -68,10 +67,11 @@ function AppRoutes() {
         </ProtectedRoute>
       }>
         <Route index element={<AdminDashboard />} />
-        <Route path="users"        element={<UserManagement />} />
-        <Route path="rooms"        element={<RoomManagement />} />
-        <Route path="reservations" element={<AdminReservations />} />
         <Route path="reports"      element={<Reports />} />
+        <Route path="reservations" element={<AdminReservations />} />
+        <Route path="rooms"        element={<RoomManagement />} />
+        <Route path="customers"    element={<CustomerManagement />} />
+        <Route path="users"        element={<UserManagement />} />
         <Route path="reviews"      element={<ReviewsAdmin />} />
         <Route path="calendar"     element={<AvailabilityCalendar />} />
       </Route>
@@ -83,14 +83,17 @@ function AppRoutes() {
         </ProtectedRoute>
       }>
         <Route index element={<ReceptionDashboard />} />
-        <Route path="customers"          element={<CustomerManagement />} />
-        <Route path="reservations"       element={<ReceptionReservations />} />
-        <Route path="create-reservation" element={<CreateReservation />} />
-        <Route path="checkin"            element={<CheckIn />} />
-        <Route path="checkout"           element={<CheckOut />} />
-        <Route path="search"             element={<SearchBookings />} />
-        <Route path="reports"            element={<Reports />} />
-        <Route path="calendar"           element={<AvailabilityCalendar />} />
+        <Route path="new"          element={<CreateReservation />} />
+        <Route path="reservations" element={<ReceptionReservations />} />
+        <Route path="check-in"     element={<CheckIn />} />
+        <Route path="check-out"    element={<CheckOut />} />
+        <Route path="customers"    element={<CustomerManagement />} />
+        <Route path="calendar"     element={<AvailabilityCalendar />} />
+
+        {/* Legacy route redirects */}
+        <Route path="create-reservation" element={<Navigate to="/reception/new" replace />} />
+        <Route path="checkin"            element={<Navigate to="/reception/check-in" replace />} />
+        <Route path="checkout"           element={<Navigate to="/reception/check-out" replace />} />
       </Route>
 
       {/* Customer */}

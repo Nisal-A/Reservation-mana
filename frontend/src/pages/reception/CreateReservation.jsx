@@ -82,7 +82,7 @@ export default function CreateReservation() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24 }}>
+      <div className="create-reservation-grid">
         <form className="card" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Customer */}
           <div className="form-group">

@@ -12,23 +12,40 @@ export default function ReceptionDashboard() {
   const [recentRes, setRecentRes] = useState([]);
 
   useEffect(() => {
-    Promise.all([
-      api.get('/reports/summary'),
-      api.get('/reservations', { params: { status: 'confirmed' } }),
-    ]).then(([s, r]) => {
-      setSummary(s.data);
-      const list = Array.isArray(r.data) ? r.data : (r.data?.data || []);
-      setRecentRes(list.slice(0, 5));
+    const today = todayISO();
+    Promise.allSettled([
+      api.get('/rooms'),
+      api.get('/reservations', { params: { limit: 100 } }),
+    ]).then(([roomsRes, resRes]) => {
+      const rooms = roomsRes.status === 'fulfilled' ? (Array.isArray(roomsRes.value.data) ? roomsRes.value.data : roomsRes.value.data?.data || []) : [];
+      const resPayload = resRes.status === 'fulfilled' ? resRes.value.data : {};
+      const allReservations = Array.isArray(resPayload) ? resPayload : (resPayload.data || []);
+
+      const availableRooms = rooms.filter((r) => r.status === 'available').length;
+      const todaysCheckins = allReservations.filter((r) => r.check_in_date === today && (r.status === 'confirmed' || r.status === 'checked_in')).length;
+      const todaysCheckouts = allReservations.filter((r) => r.check_out_date === today && r.status === 'checked_in').length;
+      const pendingReservations = allReservations.filter((r) => r.status === 'pending').length;
+      const confirmedUpcoming = allReservations.filter((r) => r.status === 'confirmed').slice(0, 5);
+
+      setSummary({
+        available_rooms: availableRooms,
+        todays_checkins: todaysCheckins,
+        todays_checkouts: todaysCheckouts,
+        pending_reservations: pendingReservations,
+      });
+      setRecentRes(confirmedUpcoming);
+    }).catch(() => {
+      setSummary({ available_rooms: 0, todays_checkins: 0, todays_checkouts: 0, pending_reservations: 0 });
     }).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <PageLoader />;
 
   const stats = [
-    { icon: <BedDouble size={20} />, label: 'Available Rooms',     value: summary.available_rooms,     color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
-    { icon: <LogIn size={20} />,     label: "Today's Check-Ins",  value: summary.todays_checkins,     color: '#3b82f6', bg: 'rgba(59,130,246,0.12)' },
-    { icon: <LogOut size={20} />,    label: "Today's Check-Outs", value: summary.todays_checkouts,    color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-    { icon: <Clock size={20} />,     label: 'Pending Approvals',  value: summary.pending_reservations, color: '#d4a843', bg: 'rgba(212,168,67,0.12)' },
+    { icon: <BedDouble size={20} />, label: 'Available Rooms',     value: summary?.available_rooms ?? 0,     color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
+    { icon: <LogIn size={20} />,     label: "Today's Check-Ins",  value: summary?.todays_checkins ?? 0,     color: '#3b82f6', bg: 'rgba(59,130,246,0.12)' },
+    { icon: <LogOut size={20} />,    label: "Today's Check-Outs", value: summary?.todays_checkouts ?? 0,    color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+    { icon: <Clock size={20} />,     label: 'Pending Approvals',  value: summary?.pending_reservations ?? 0, color: '#d4a843', bg: 'rgba(212,168,67,0.12)' },
   ];
 
   return (

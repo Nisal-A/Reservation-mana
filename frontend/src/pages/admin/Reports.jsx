@@ -101,7 +101,7 @@ export default function Reports() {
       </div>
 
       {/* Charts Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
+      <div className="grid-2-col" style={{ marginBottom: 24 }}>
         <div className="chart-wrapper">
           <div className="chart-title">Reservations by Status</div>
           <ResponsiveContainer width="100%" height={220}>

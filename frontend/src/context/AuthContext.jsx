@@ -8,16 +8,43 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('hotel_token');
-    const storedUser = localStorage.getItem('hotel_user');
-    if (token && storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        localStorage.clear();
+    const initAuth = async () => {
+      const token = localStorage.getItem('hotel_token');
+      if (!token) {
+        setLoading(false);
+        return;
       }
-    }
-    setLoading(false);
+
+      // Initial temporary hydrate from localStorage
+      const storedUser = localStorage.getItem('hotel_user');
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch {
+          // Ignore invalid JSON
+        }
+      }
+
+      try {
+        const { data } = await api.get('/auth/me');
+        const refreshedUser = {
+          ...data.user,
+          customer_id: data.customer ? data.customer.customer_id : null,
+          name: data.customer ? data.customer.name : data.user.username,
+        };
+        localStorage.setItem('hotel_user', JSON.stringify(refreshedUser));
+        setUser(refreshedUser);
+      } catch {
+        // Validation failed -> clear session
+        localStorage.removeItem('hotel_token');
+        localStorage.removeItem('hotel_user');
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
   }, []);
 
   const login = async (username, password) => {

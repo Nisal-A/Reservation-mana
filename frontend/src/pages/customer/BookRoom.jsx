@@ -4,7 +4,7 @@ import { Search, CalendarCheck, CheckCircle, BedDouble, Calendar } from 'lucide-
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageHeader } from '../../components/UI';
-import { formatDate, formatLKR } from '../../utils/format';
+import { formatDate, formatLKR, todayISO } from '../../utils/format';
 
 export default function BookRoom() {
   const [searchParams] = useSearchParams();
@@ -105,7 +105,7 @@ export default function BookRoom() {
     <div className="page-content slide-up">
       <PageHeader title="Book a Room" subtitle="Select your dates and preferred room" />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24 }}>
+      <div className="create-reservation-grid">
         <form className="card" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Date Selection */}
           <div className="form-grid form-grid-2">
@@ -113,7 +113,7 @@ export default function BookRoom() {
               <label className="form-label">Check-In Date *</label>
               <input
                 className="form-input" type="date"
-                min={new Date().toISOString().split('T')[0]}
+                min={todayISO()}
                 value={form.check_in_date} onChange={set('check_in_date')} required
               />
             </div>

@@ -35,7 +35,7 @@ export default function SearchBookings() {
       <PageHeader title="Search Bookings" subtitle="Filter reservations by name, date, room, or status" />
 
       <form className="card" onSubmit={handleSearch} style={{ marginBottom: 24 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: 16, alignItems: 'flex-end' }}>
+        <div className="search-bookings-grid">
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Search</label>
             <div className="search-bar" style={{ maxWidth: '100%' }}>
