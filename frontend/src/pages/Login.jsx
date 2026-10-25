@@ -19,7 +19,12 @@ export default function Login() {
     try {
       const user = await login(form.username, form.password);
       toast.success(`Welcome back, ${user.name || user.username}!`);
-      navigate(`/${user.role}`, { replace: true });
+      if (user.role === 'admin' || user.role === 'reception') {
+        navigate(`/${user.role}`, { replace: true });
+      } else {
+        const next = new URLSearchParams(window.location.search).get('next');
+        navigate(next || '/', { replace: true });
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
