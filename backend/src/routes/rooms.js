@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../config/db');
 const { verifyToken, requireRole } = require('../middleware/auth');
+const { findAvailableRooms } = require('../services/availability');
 
 const router = express.Router();
 
@@ -25,23 +26,20 @@ router.get('/', verifyToken, async (req, res) => {
 
 // GET /api/rooms/available — check availability for date range (authenticated)
 router.get('/available', verifyToken, async (req, res) => {
-  const { check_in, check_out } = req.query;
+  const { check_in, check_out, guests, room_type, min_price, max_price } = req.query;
   if (!check_in || !check_out) {
     return res.status(400).json({ message: 'check_in and check_out dates are required.' });
   }
 
   try {
-    const query = `
-      SELECT r.* FROM rooms r
-      WHERE r.status != 'maintenance'
-      AND r.room_id NOT IN (
-        SELECT res.room_id FROM reservations res
-        WHERE res.status NOT IN ('cancelled', 'checked_out')
-        AND NOT (res.check_out_date <= ? OR res.check_in_date >= ?)
-      )
-      ORDER BY r.room_type, r.price ASC
-    `;
-    const [rows] = await pool.query(query, [check_in, check_out]);
+    const rows = await findAvailableRooms({
+      checkIn: check_in,
+      checkOut: check_out,
+      guests,
+      roomType: room_type,
+      minPrice: min_price,
+      maxPrice: max_price,
+    });
     res.json(rows);
   } catch (err) {
     console.error(err);

@@ -33,7 +33,8 @@ export default function CheckOut() {
     }
     setProcessing(true);
     try {
-      const { data } = await api.patch(`/reservations/${reservation.reservation_id}/checkout`, { remark, payment_method: paymentMethod });
+      const ref = reservation.booking_ref || reservation.reservation_id;
+      const { data } = await api.patch(`/reservations/${ref}/check-out`, { remark, payment_method: paymentMethod });
       toast.success('Guest checked out successfully!');
       setBill(data.total_amount);
       setReservation({ ...reservation, status: 'checked_out', total_amount: data.total_amount, payment_method: data.payment_method });
@@ -51,19 +52,19 @@ export default function CheckOut() {
 
   return (
     <div className="page-content slide-up">
-      <PageHeader title="Guest Check-Out" subtitle="Search reservation by ID to process check-out and generate bill" />
+      <PageHeader title="Guest Check-Out" subtitle="Search reservation by booking reference to process check-out and generate bill" />
 
       <div style={{ maxWidth: 680, margin: '0 auto' }}>
         <form className="card" onSubmit={handleSearch} style={{ display: 'flex', gap: 12, marginBottom: 24, alignItems: 'flex-end' }}>
           <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-            <label className="form-label">Reservation ID</label>
+            <label className="form-label">Booking Reference</label>
             <input
               id="checkout-search"
-              className="form-input" type="number"
-              placeholder="Enter reservation ID..."
+              className="form-input" type="text"
+              placeholder="Enter booking reference (e.g. LS-2026-000001)..."
               value={searchId}
               onChange={(e) => setSearchId(e.target.value)}
-              min="1" required
+              required
             />
           </div>
           <button type="submit" className="btn btn-secondary" disabled={searching}>
@@ -74,7 +75,7 @@ export default function CheckOut() {
         {reservation && (
           <div className="card slide-up">
             <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Reservation #{reservation.reservation_id}</span>
+              <span>Reservation {reservation.booking_ref || `#${reservation.reservation_id}`}</span>
               <StatusBadge status={reservation.status} />
             </div>
 

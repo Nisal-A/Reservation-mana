@@ -18,7 +18,7 @@ export default function CreateReservation() {
   const [success, setSuccess] = useState(null);
 
   useEffect(() => {
-    api.get('/reservations/customers/list')
+    api.get('/customers')
       .then(({ data }) => setCustomers(data))
       .catch(() => toast.error('Failed to load customers'));
   }, []);
@@ -58,7 +58,11 @@ export default function CreateReservation() {
     if (!form.room_id) return toast.error('Select a room');
     setSubmitting(true);
     try {
-      const { data } = await api.post('/reservations', form);
+      const { data } = await api.post('/reservations/staff', {
+        ...form,
+        customer_id: Number(form.customer_id),
+        room_id: Number(form.room_id),
+      });
       setSuccess(data);
       setForm({ customer_id: '', room_id: '', check_in_date: '', check_out_date: '', remark: '' });
       setAvailableRooms([]); setSearched(false);
@@ -74,7 +78,7 @@ export default function CreateReservation() {
 
       {success && (
         <div className="alert alert-success" style={{ marginBottom: 20 }}>
-          ✅ Reservation #{success.reservation_id} created for {success.customer_name} — Room {success.room_number}
+          Reservation {success.booking_ref || `#${success.reservation_id}`} created for {success.customer_name} — Room {success.room_number}
         </div>
       )}
 

@@ -28,7 +28,7 @@ const pool = mysql.createPool({
   dateStrings: ['DATE'],
   timezone: getTimezoneOffset(env.HOTEL_TIMEZONE),
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 30,
   queueLimit: 0,
 });
 

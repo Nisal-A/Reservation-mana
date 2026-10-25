@@ -13,8 +13,8 @@ export default function MyBookings() {
 
   const fetchReservations = async () => {
     try {
-      const { data } = await api.get('/reservations');
-      setReservations(data);
+      const { data } = await api.get('/reservations/my');
+      setReservations(Array.isArray(data) ? data : data.data || []);
     } catch { toast.error('Failed to load bookings'); }
     finally  { setLoading(false); }
   };
@@ -23,7 +23,8 @@ export default function MyBookings() {
 
   const handleCancel = async () => {
     try {
-      await api.patch(`/reservations/${cancelTarget.reservation_id}/cancel`);
+      const ref = cancelTarget.booking_ref || cancelTarget.reservation_id;
+      await api.patch(`/reservations/${ref}/cancel`);
       toast.success('Reservation cancelled');
       setCancelTarget(null);
       fetchReservations();

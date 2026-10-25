@@ -17,9 +17,9 @@ export default function AdminReservations() {
     try {
       const params = {};
       if (filterStatus) params.status = filterStatus;
-      if (search) params.search = search;
+      if (search) params.q = search;
       const { data } = await api.get('/reservations', { params });
-      setReservations(data);
+      setReservations(Array.isArray(data) ? data : (data.data || []));
     } catch { toast.error('Failed to load reservations'); }
     finally  { setLoading(false); }
   };
@@ -31,10 +31,10 @@ export default function AdminReservations() {
     fetchReservations();
   };
 
-  const handleCancel = async (id) => {
+  const handleCancel = async (ref) => {
     if (!window.confirm('Cancel this reservation?')) return;
     try {
-      await api.patch(`/reservations/${id}/cancel`);
+      await api.patch(`/reservations/${ref}/cancel`);
       toast.success('Reservation cancelled');
       fetchReservations();
     } catch (err) {
@@ -106,7 +106,7 @@ export default function AdminReservations() {
                       <div className="table-actions">
                         <button className="icon-btn" onClick={() => setViewRes(r)} title="View"><Eye size={15} /></button>
                         {['pending','confirmed'].includes(r.status) && (
-                          <button className="icon-btn" onClick={() => handleCancel(r.reservation_id)} title="Cancel"
+                          <button className="icon-btn" onClick={() => handleCancel(r.booking_ref || r.reservation_id)} title="Cancel"
                             style={{ color:'var(--color-error)', borderColor:'rgba(239,68,68,0.2)' }}>
                             <X size={15} />
                           </button>

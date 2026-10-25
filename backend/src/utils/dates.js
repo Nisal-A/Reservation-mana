@@ -61,10 +61,35 @@ function eachNight(checkIn, checkOut) {
   return nights;
 }
 
+function getHotelTimestamp(dateStr, timeStr = '00:00:00', timeZone = env.HOTEL_TIMEZONE) {
+  if (!isValidDateString(dateStr)) {
+    throw new Error(`Invalid date string: ${dateStr}`);
+  }
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const [hr, min, sec] = (timeStr || '00:00:00').split(':').map(Number);
+  const guess = new Date(Date.UTC(y, m - 1, d, hr || 0, min || 0, sec || 0));
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hourCycle: 'h23',
+  }).formatToParts(guess);
+  const p = {};
+  parts.forEach((part) => { p[part.type] = Number(part.value); });
+  const actualAsUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+  const diff = actualAsUtc - guess.getTime();
+  return new Date(guess.getTime() - diff);
+}
+
 module.exports = {
   today,
   isValidDateString,
   addDays,
   nightsBetween,
   eachNight,
+  getHotelTimestamp,
 };

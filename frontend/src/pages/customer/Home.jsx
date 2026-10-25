@@ -14,10 +14,10 @@ export default function CustomerHome() {
 
   useEffect(() => {
     Promise.all([
-      api.get('/reservations'),
+      api.get('/reservations/my'),
       api.get('/rooms', { params: { status: 'available' } }),
     ]).then(([res, rooms]) => {
-      const myRes = res.data;
+      const myRes = Array.isArray(res.data) ? res.data : (res.data?.data || []);
       setSummary({
         confirmed: myRes.filter((r) => r.status === 'confirmed').length,
         total: myRes.length,

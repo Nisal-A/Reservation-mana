@@ -1,255 +1,347 @@
+// backend/src/routes/reservations.js
+// Reservation routes for customer portal and staff (reception & admin)
+
 const express = require('express');
+const { z } = require('zod');
 const pool = require('../config/db');
 const { verifyToken, requireRole } = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const asyncHandler = require('../middleware/asyncHandler');
+const reservationsService = require('../services/reservations');
 
 const router = express.Router();
 
-// Helper: calculate total amount
-const calcTotal = (checkIn, checkOut, pricePerNight) => {
-  const msPerDay = 1000 * 60 * 60 * 24;
-  const nights = Math.round((new Date(checkOut) - new Date(checkIn)) / msPerDay);
-  return nights * pricePerNight;
-};
-
-// Helper: check overlap
-const hasOverlap = async (roomId, checkIn, checkOut, excludeId = null) => {
-  let query = `
-    SELECT reservation_id FROM reservations
-    WHERE room_id = ?
-    AND status NOT IN ('cancelled', 'checked_out')
-    AND NOT (check_out_date <= ? OR check_in_date >= ?)
-  `;
-  const params = [roomId, checkIn, checkOut];
-  if (excludeId) { query += ' AND reservation_id != ?'; params.push(excludeId); }
-  const [rows] = await pool.query(query, params);
-  return rows.length > 0;
-};
-
-// GET /api/reservations — admin/reception: all; customer: own
-router.get('/', verifyToken, async (req, res) => {
-  try {
-    const { status, room_id, customer_id, search, from_date, to_date } = req.query;
-
-    let query = `
-      SELECT r.*, c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone,
-             rm.room_number, rm.room_type, rm.price AS room_price
-      FROM reservations r
-      JOIN customers c ON r.customer_id = c.customer_id
-      JOIN rooms rm ON r.room_id = rm.room_id
-      WHERE 1=1
-    `;
-    const params = [];
-
-    if (req.user.role === 'customer') {
-      query += ' AND r.customer_id = ?';
-      params.push(req.user.customer_id);
-    } else if (customer_id) {
-      query += ' AND r.customer_id = ?';
-      params.push(customer_id);
-    }
-
-    if (status) { query += ' AND r.status = ?'; params.push(status); }
-    if (room_id) { query += ' AND r.room_id = ?'; params.push(room_id); }
-    if (from_date) { query += ' AND r.check_in_date >= ?'; params.push(from_date); }
-    if (to_date)   { query += ' AND r.check_out_date <= ?'; params.push(to_date); }
-    if (search && req.user.role !== 'customer') {
-      query += ' AND (c.name LIKE ? OR c.email LIKE ? OR rm.room_number LIKE ?)';
-      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
-    }
-
-    query += ' ORDER BY r.created_at DESC';
-    const [rows] = await pool.query(query, params);
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error.' });
-  }
-});
-
-// GET /api/reservations/:id
-router.get('/:id', verifyToken, async (req, res) => {
-  try {
+// Helper to ensure customer_id is resolved for customer tokens
+async function getAuthenticatedCustomerId(req) {
+  if (req.user.customer_id) return req.user.customer_id;
+  if (req.user.user_id) {
     const [rows] = await pool.query(
-      `SELECT r.*, c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone,
-              rm.room_number, rm.room_type, rm.price AS room_price
-       FROM reservations r
-       JOIN customers c ON r.customer_id = c.customer_id
-       JOIN rooms rm ON r.room_id = rm.room_id
-       WHERE r.reservation_id = ?`,
-      [req.params.id]
+      'SELECT customer_id FROM customers WHERE user_id = ?',
+      [req.user.user_id]
     );
-    if (rows.length === 0) return res.status(404).json({ message: 'Reservation not found.' });
-
-    const res_ = rows[0];
-    if (req.user.role === 'customer' && res_.customer_id !== req.user.customer_id) {
-      return res.status(403).json({ message: 'Access denied.' });
+    if (rows.length > 0) {
+      req.user.customer_id = rows[0].customer_id;
+      return rows[0].customer_id;
     }
-    res.json(res_);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error.' });
   }
+  return null;
+}
+
+// ─── Validation Schemas ────────────────────────────────────────────────────────
+
+const customerCreateSchema = z.object({
+  body: z.object({
+    room_id: z.coerce.number().int().positive('room_id is required'),
+    check_in_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'check_in_date must be YYYY-MM-DD'),
+    check_out_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'check_out_date must be YYYY-MM-DD'),
+    guests: z.coerce.number().int().min(1).default(1),
+    remark: z.string().max(500).optional().nullable(),
+  }),
 });
 
-// POST /api/reservations — customer self-book or reception/admin create
-router.post('/', verifyToken, async (req, res) => {
-  const { customer_id, room_id, check_in_date, check_out_date, remark } = req.body;
-
-  const resolvedCustomerId = req.user.role === 'customer' ? req.user.customer_id : customer_id;
-
-  if (!resolvedCustomerId || !room_id || !check_in_date || !check_out_date) {
-    return res.status(400).json({ message: 'customer_id, room_id, check_in_date, check_out_date are required.' });
-  }
-
-  if (new Date(check_out_date) <= new Date(check_in_date)) {
-    return res.status(400).json({ message: 'Check-out must be after check-in.' });
-  }
-
-  try {
-    // Check room exists and get price
-    const [roomRows] = await pool.query('SELECT * FROM rooms WHERE room_id = ?', [room_id]);
-    if (roomRows.length === 0) return res.status(404).json({ message: 'Room not found.' });
-
-    const room = roomRows[0];
-    if (room.status === 'maintenance') {
-      return res.status(400).json({ message: 'Room is under maintenance.' });
-    }
-
-    // Check date overlap
-    const overlap = await hasOverlap(room_id, check_in_date, check_out_date);
-    if (overlap) {
-      return res.status(409).json({ message: 'Room is already booked for the selected dates.' });
-    }
-
-    const total = calcTotal(check_in_date, check_out_date, room.price);
-
-    const [result] = await pool.query(
-      `INSERT INTO reservations (customer_id, room_id, check_in_date, check_out_date, total_amount, status, remark)
-       VALUES (?, ?, ?, ?, ?, 'confirmed', ?)`,
-      [resolvedCustomerId, room_id, check_in_date, check_out_date, total, remark || null]
-    );
-
-    const [newRes] = await pool.query(
-      `SELECT r.*, c.name AS customer_name, rm.room_number, rm.room_type
-       FROM reservations r
-       JOIN customers c ON r.customer_id = c.customer_id
-       JOIN rooms rm ON r.room_id = rm.room_id
-       WHERE r.reservation_id = ?`,
-      [result.insertId]
-    );
-
-    res.status(201).json(newRes[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error.' });
-  }
+const staffCreateSchema = z.object({
+  body: z.object({
+    customer_id: z.coerce.number().int().positive().optional().nullable(),
+    customer: z.object({
+      name: z.string().min(1, 'Customer name is required'),
+      email: z.string().email('Valid customer email is required'),
+      phone: z.string().optional().nullable(),
+    }).optional().nullable(),
+    room_id: z.coerce.number().int().positive('room_id is required'),
+    check_in_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'check_in_date must be YYYY-MM-DD'),
+    check_out_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'check_out_date must be YYYY-MM-DD'),
+    guests: z.coerce.number().int().min(1).default(1),
+    remark: z.string().max(500).optional().nullable(),
+  }).refine((data) => data.customer_id || data.customer, {
+    message: 'Either customer_id or customer { name, email, phone } is required',
+    path: ['customer_id'],
+  }),
 });
 
-// PATCH /api/reservations/:id/cancel
-router.patch('/:id/cancel', verifyToken, async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT * FROM reservations WHERE reservation_id = ?', [req.params.id]);
-    if (rows.length === 0) return res.status(404).json({ message: 'Reservation not found.' });
-
-    const reservation = rows[0];
-
-    if (req.user.role === 'customer' && reservation.customer_id !== req.user.customer_id) {
-      return res.status(403).json({ message: 'Access denied.' });
-    }
-
-    if (['checked_in', 'checked_out', 'cancelled'].includes(reservation.status)) {
-      return res.status(400).json({ message: `Cannot cancel a reservation with status: ${reservation.status}` });
-    }
-
-    await pool.query(
-      "UPDATE reservations SET status = 'cancelled' WHERE reservation_id = ?",
-      [req.params.id]
-    );
-
-    // Free room if it was occupied by this reservation specifically
-    if (reservation.status === 'checked_in') {
-      await pool.query("UPDATE rooms SET status = 'available' WHERE room_id = ?", [reservation.room_id]);
-    }
-
-    res.json({ message: 'Reservation cancelled successfully.' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error.' });
-  }
+const refParamSchema = z.object({
+  params: z.object({
+    ref: z.string().min(1, 'booking_ref is required'),
+  }),
 });
 
-// PATCH /api/reservations/:id/checkin — reception/admin
-router.patch('/:id/checkin', verifyToken, requireRole('admin', 'reception'), async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT * FROM reservations WHERE reservation_id = ?', [req.params.id]);
-    if (rows.length === 0) return res.status(404).json({ message: 'Reservation not found.' });
+const staffListQuerySchema = z.object({
+  query: z.object({
+    q: z.string().optional(),
+    status: z.enum(['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled', 'no_show']).optional(),
+    source: z.string().optional(),
+    payment_status: z.enum(['unpaid', 'partial', 'paid', 'refunded']).optional(),
+    room_id: z.coerce.number().int().positive().optional(),
+    room_type: z.string().optional(),
+    from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+  }),
+});
 
-    const reservation = rows[0];
-    if (reservation.status !== 'confirmed') {
-      return res.status(400).json({ message: `Cannot check in. Current status: ${reservation.status}` });
+const cancelSchema = z.object({
+  params: z.object({
+    ref: z.string().min(1, 'booking_ref is required'),
+  }),
+  body: z.object({
+    reason: z.string().max(500).optional().nullable(),
+  }).optional(),
+});
+
+// Helper for sending service error responses
+function handleServiceError(err, res, next) {
+  if (err.status) {
+    const payload = {
+      message: err.message,
+      errors: [],
+    };
+    if (err.balance !== undefined) {
+      payload.balance = err.balance;
+    }
+    return res.status(err.status).json(payload);
+  }
+  next(err);
+}
+
+// ─── 1. POST /api/reservations (customer only) ───────────────────────────────
+router.post(
+  '/',
+  verifyToken,
+  requireRole('customer'),
+  validate(customerCreateSchema),
+  asyncHandler(async (req, res, next) => {
+    try {
+      const customerId = await getAuthenticatedCustomerId(req);
+      if (!customerId) {
+        return res.status(403).json({ message: 'Customer account not found.', errors: [] });
+      }
+
+      const { room_id, check_in_date, check_out_date, guests, remark } = req.body;
+
+      const created = await reservationsService.create({
+        customerId,
+        roomId: room_id,
+        checkInDate: check_in_date,
+        checkOutDate: check_out_date,
+        guests,
+        remark,
+        bookingSource: 'online',
+        status: 'pending',
+        paymentStatus: 'unpaid',
+        userId: req.user.user_id,
+      });
+
+      return res.status(201).json(created);
+    } catch (err) {
+      handleServiceError(err, res, next);
+    }
+  })
+);
+
+// ─── 2. POST /api/reservations/staff (admin, reception) ──────────────────────
+router.post(
+  '/staff',
+  verifyToken,
+  requireRole('admin', 'reception'),
+  validate(staffCreateSchema),
+  asyncHandler(async (req, res, next) => {
+    try {
+      const { customer_id, customer, room_id, check_in_date, check_out_date, guests, remark } = req.body;
+      const bookingSource = req.user.role === 'admin' ? 'admin' : 'reception';
+
+      const created = await reservationsService.create({
+        customerId: customer_id,
+        customer,
+        roomId: room_id,
+        checkInDate: check_in_date,
+        checkOutDate: check_out_date,
+        guests,
+        remark,
+        bookingSource,
+        status: 'confirmed',
+        paymentStatus: 'unpaid',
+        userId: req.user.user_id,
+      });
+
+      return res.status(201).json(created);
+    } catch (err) {
+      handleServiceError(err, res, next);
+    }
+  })
+);
+
+// ─── 3. GET /api/reservations/my (customer only) ─────────────────────────────
+router.get(
+  '/my',
+  verifyToken,
+  requireRole('customer'),
+  asyncHandler(async (req, res) => {
+    const customerId = await getAuthenticatedCustomerId(req);
+    if (!customerId) {
+      return res.status(403).json({ message: 'Customer account not found.', errors: [] });
     }
 
-    await pool.query(
-      "UPDATE reservations SET status = 'checked_in' WHERE reservation_id = ?",
-      [req.params.id]
-    );
-    await pool.query(
-      "UPDATE rooms SET status = 'occupied' WHERE room_id = ?",
-      [reservation.room_id]
-    );
+    const data = await reservationsService.listCustomerReservations(customerId);
+    res.json(data);
+  })
+);
 
-    res.json({ message: 'Guest checked in successfully.' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error.' });
-  }
-});
-
-// PATCH /api/reservations/:id/checkout — reception/admin
-router.patch('/:id/checkout', verifyToken, requireRole('admin', 'reception'), async (req, res) => {
-  const { remark, payment_method } = req.body;
-  try {
-    const [rows] = await pool.query(
-      `SELECT r.*, rm.price AS room_price FROM reservations r
-       JOIN rooms rm ON r.room_id = rm.room_id
-       WHERE r.reservation_id = ?`,
-      [req.params.id]
-    );
-    if (rows.length === 0) return res.status(404).json({ message: 'Reservation not found.' });
-
-    const reservation = rows[0];
-    if (reservation.status !== 'checked_in') {
-      return res.status(400).json({ message: `Cannot check out. Current status: ${reservation.status}` });
+// ─── 4. GET /api/reservations/my/:ref (customer only) ────────────────────────
+router.get(
+  '/my/:ref',
+  verifyToken,
+  requireRole('customer'),
+  validate(refParamSchema),
+  asyncHandler(async (req, res) => {
+    const customerId = await getAuthenticatedCustomerId(req);
+    if (!customerId) {
+      return res.status(403).json({ message: 'Customer account not found.', errors: [] });
     }
 
-    // Recalculate final total
-    const finalTotal = calcTotal(reservation.check_in_date, reservation.check_out_date, reservation.room_price);
-
-    await pool.query(
-      "UPDATE reservations SET status = 'checked_out', total_amount = ?, remark = COALESCE(?, remark), payment_method = ? WHERE reservation_id = ?",
-      [finalTotal, remark || null, payment_method || null, req.params.id]
-    );
-    await pool.query(
-      "UPDATE rooms SET status = 'available' WHERE room_id = ?",
-      [reservation.room_id]
+    const reservation = await reservationsService.getCustomerReservation(
+      req.params.ref,
+      customerId
     );
 
-    res.json({ message: 'Guest checked out successfully.', total_amount: finalTotal, payment_method });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error.' });
-  }
-});
+    // Rule: A reference that belongs to someone else returns 404, not 403.
+    if (!reservation) {
+      return res.status(404).json({ message: 'Reservation not found.', errors: [] });
+    }
 
-// GET /api/reservations/customers/list — reception/admin: list all customers
-router.get('/customers/list', verifyToken, requireRole('admin', 'reception'), async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT * FROM customers ORDER BY name ASC');
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error.' });
-  }
-});
+    res.json(reservation);
+  })
+);
+
+// ─── 5. GET /api/reservations (admin, reception) ─────────────────────────────
+router.get(
+  '/',
+  verifyToken,
+  requireRole('admin', 'reception'),
+  validate(staffListQuerySchema),
+  asyncHandler(async (req, res) => {
+    const result = await reservationsService.listStaffReservations(req.query);
+    res.json(result);
+  })
+);
+
+// ─── 6. GET /api/reservations/:ref (staff) ───────────────────────────────────
+router.get(
+  '/:ref',
+  verifyToken,
+  requireRole('admin', 'reception'),
+  validate(refParamSchema),
+  asyncHandler(async (req, res) => {
+    const reservation = await reservationsService.getStaffDetail(req.params.ref);
+    if (!reservation) {
+      return res.status(404).json({ message: 'Reservation not found.', errors: [] });
+    }
+    res.json(reservation);
+  })
+);
+
+// ─── 7. PATCH /api/reservations/:ref/confirm (staff) ─────────────────────────
+router.patch(
+  '/:ref/confirm',
+  verifyToken,
+  requireRole('admin', 'reception'),
+  validate(refParamSchema),
+  asyncHandler(async (req, res, next) => {
+    try {
+      const updated = await reservationsService.confirm({
+        bookingRef: req.params.ref,
+        userId: req.user.user_id,
+      });
+      res.json(updated);
+    } catch (err) {
+      handleServiceError(err, res, next);
+    }
+  })
+);
+
+// ─── 8. PATCH /api/reservations/:ref/cancel (customer or staff) ──────────────
+router.patch(
+  '/:ref/cancel',
+  verifyToken,
+  validate(cancelSchema),
+  asyncHandler(async (req, res, next) => {
+    try {
+      let customerId = null;
+      if (req.user.role === 'customer') {
+        customerId = await getAuthenticatedCustomerId(req);
+        if (!customerId) {
+          return res.status(403).json({ message: 'Customer account not found.', errors: [] });
+        }
+      }
+
+      const updated = await reservationsService.cancel({
+        bookingRef: req.params.ref,
+        userId: req.user.user_id,
+        userRole: req.user.role,
+        customerId,
+      });
+
+      res.json(updated);
+    } catch (err) {
+      handleServiceError(err, res, next);
+    }
+  })
+);
+
+// ─── 9. PATCH /api/reservations/:ref/no-show (staff) ─────────────────────────
+router.patch(
+  '/:ref/no-show',
+  verifyToken,
+  requireRole('admin', 'reception'),
+  validate(refParamSchema),
+  asyncHandler(async (req, res, next) => {
+    try {
+      const updated = await reservationsService.markNoShow({
+        bookingRef: req.params.ref,
+        userId: req.user.user_id,
+      });
+      res.json(updated);
+    } catch (err) {
+      handleServiceError(err, res, next);
+    }
+  })
+);
+
+// ─── 10. PATCH /api/reservations/:ref/check-in (staff) ────────────────────────
+router.patch(
+  '/:ref/check-in',
+  verifyToken,
+  requireRole('admin', 'reception'),
+  validate(refParamSchema),
+  asyncHandler(async (req, res, next) => {
+    try {
+      const updated = await reservationsService.checkIn({
+        bookingRef: req.params.ref,
+        userId: req.user.user_id,
+      });
+      res.json(updated);
+    } catch (err) {
+      handleServiceError(err, res, next);
+    }
+  })
+);
+
+// ─── 11. PATCH /api/reservations/:ref/check-out (staff) ───────────────────────
+router.patch(
+  '/:ref/check-out',
+  verifyToken,
+  requireRole('admin', 'reception'),
+  validate(refParamSchema),
+  asyncHandler(async (req, res, next) => {
+    try {
+      const updated = await reservationsService.checkOut({
+        bookingRef: req.params.ref,
+        userId: req.user.user_id,
+      });
+      res.json(updated);
+    } catch (err) {
+      handleServiceError(err, res, next);
+    }
+  })
+);
 
 module.exports = router;

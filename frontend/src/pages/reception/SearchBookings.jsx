@@ -18,12 +18,12 @@ export default function SearchBookings() {
     setLoading(true);
     try {
       const params = {};
-      if (search)       params.search    = search;
-      if (filterStatus) params.status    = filterStatus;
-      if (fromDate)     params.from_date = fromDate;
-      if (toDate)       params.to_date   = toDate;
+      if (search)       params.q      = search;
+      if (filterStatus) params.status = filterStatus;
+      if (fromDate)     params.from   = fromDate;
+      if (toDate)       params.to     = toDate;
       const { data } = await api.get('/reservations', { params });
-      setResults(data);
+      setResults(Array.isArray(data) ? data : (data.data || []));
       setSearched(true);
     } catch { toast.error('Search failed'); }
     finally { setLoading(false); }

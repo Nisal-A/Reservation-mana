@@ -16,7 +16,8 @@ export default function ReceptionDashboard() {
       api.get('/reservations', { params: { status: 'confirmed' } }),
     ]).then(([s, r]) => {
       setSummary(s.data);
-      setRecentRes(r.data.slice(0, 5));
+      const list = Array.isArray(r.data) ? r.data : (r.data?.data || []);
+      setRecentRes(list.slice(0, 5));
     }).finally(() => setLoading(false));
   }, []);
 

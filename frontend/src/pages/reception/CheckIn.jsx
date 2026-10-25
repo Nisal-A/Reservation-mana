@@ -28,8 +28,9 @@ export default function CheckIn() {
   const handleCheckIn = async () => {
     setProcessing(true);
     try {
-      await api.patch(`/reservations/${reservation.reservation_id}/checkin`);
-      toast.success('Guest checked in successfully! 🎉');
+      const ref = reservation.booking_ref || reservation.reservation_id;
+      await api.patch(`/reservations/${ref}/check-in`);
+      toast.success('Guest checked in successfully!');
       setDone(true);
       setReservation({ ...reservation, status: 'checked_in' });
     } catch (err) {
@@ -41,20 +42,19 @@ export default function CheckIn() {
 
   return (
     <div className="page-content slide-up">
-      <PageHeader title="Guest Check-In" subtitle="Search reservation by ID to process check-in" />
+      <PageHeader title="Guest Check-In" subtitle="Search reservation by booking reference to process check-in" />
 
-      <div style={{ maxWidth: 640, margin: '0 auto' }}>
+      <div style={{ maxWidth: 680, margin: '0 auto' }}>
         <form className="card" onSubmit={handleSearch} style={{ display: 'flex', gap: 12, marginBottom: 24, alignItems: 'flex-end' }}>
           <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-            <label className="form-label">Reservation ID</label>
+            <label className="form-label">Booking Reference</label>
             <input
               id="checkin-search"
               className="form-input"
-              type="number"
-              placeholder="Enter reservation ID..."
+              type="text"
+              placeholder="Enter booking reference (e.g. LS-2026-000001)..."
               value={searchId}
               onChange={(e) => setSearchId(e.target.value)}
-              min="1"
               required
             />
           </div>
@@ -66,7 +66,7 @@ export default function CheckIn() {
         {reservation && (
           <div className="card slide-up">
             <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Reservation #{reservation.reservation_id}</span>
+              <span>Reservation {reservation.booking_ref || `#${reservation.reservation_id}`}</span>
               <StatusBadge status={reservation.status} />
             </div>
 

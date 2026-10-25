@@ -19,9 +19,9 @@ export default function ReceptionReservations() {
     try {
       const params = {};
       if (filterStatus) params.status = filterStatus;
-      if (search) params.search = search;
+      if (search) params.q = search;
       const { data } = await api.get('/reservations', { params });
-      setReservations(data);
+      setReservations(Array.isArray(data) ? data : (data.data || []));
     } catch { toast.error('Failed to load'); }
     finally  { setLoading(false); }
   };
@@ -30,10 +30,10 @@ export default function ReceptionReservations() {
 
   const fmt = (d) => d ? new Date(d).toLocaleDateString() : '—';
 
-  const handleCancel = async (id) => {
+  const handleCancel = async (ref) => {
     if (!window.confirm('Cancel this reservation?')) return;
     try {
-      await api.patch(`/reservations/${id}/cancel`);
+      await api.patch(`/reservations/${ref}/cancel`);
       toast.success('Cancelled'); fetch();
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
   };
@@ -106,7 +106,7 @@ export default function ReceptionReservations() {
                           {['pending','confirmed'].includes(r.status) && (
                             <button className="icon-btn" title="Cancel"
                               style={{ color:'var(--color-error)', borderColor:'rgba(239,68,68,0.2)' }}
-                              onClick={() => handleCancel(r.reservation_id)}>
+                              onClick={() => handleCancel(r.booking_ref || r.reservation_id)}>
                               <X size={14}/>
                             </button>
                           )}

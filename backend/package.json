@@ -9,6 +9,7 @@
     "migrate": "node scripts/migrate.js",
     "seed:staff": "node scripts/seed-staff.js",
     "seed:rooms": "node scripts/seed-rooms.js",
+    "test:bookings": "node scripts/check-bookings.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
