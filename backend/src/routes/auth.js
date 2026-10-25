@@ -7,6 +7,7 @@ const pool = require('../config/db');
 const env = require('../config/env');
 const validate = require('../middleware/validate');
 const asyncHandler = require('../middleware/asyncHandler');
+const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -41,10 +42,18 @@ router.post('/login', authLimiter, validate(loginSchema), asyncHandler(async (re
   }
 
   const user = rows[0];
+
+  if (!user.is_active) {
+    return res.status(401).json({ message: 'User account is inactive. Please contact administration.', errors: [] });
+  }
+
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
     return res.status(401).json({ message: 'Invalid credentials.', errors: [] });
   }
+
+  // Update last_login_at
+  await pool.query('UPDATE users SET last_login_at = NOW() WHERE user_id = ?', [user.user_id]);
 
   // If customer, get customer details
   let customerData = null;
@@ -73,9 +82,41 @@ router.post('/login', authLimiter, validate(loginSchema), asyncHandler(async (re
       user_id: user.user_id,
       username: user.username,
       role: user.role,
+      is_active: Boolean(user.is_active),
       customer_id: customerData ? customerData.customer_id : null,
       name: customerData ? customerData.name : user.username,
     },
+  });
+}));
+
+// GET /api/auth/me
+router.get('/me', verifyToken, asyncHandler(async (req, res) => {
+  const [userRows] = await pool.query(
+    'SELECT user_id, username, role, is_active, last_login_at, created_at FROM users WHERE user_id = ?',
+    [req.user.user_id]
+  );
+
+  if (userRows.length === 0) {
+    return res.status(404).json({ message: 'User not found.', errors: [] });
+  }
+
+  const freshUser = {
+    ...userRows[0],
+    is_active: Boolean(userRows[0].is_active),
+  };
+
+  let customerRecord = null;
+  const [custRows] = await pool.query(
+    'SELECT customer_id, user_id, name, email, phone, created_at FROM customers WHERE user_id = ?',
+    [req.user.user_id]
+  );
+  if (custRows.length > 0) {
+    customerRecord = custRows[0];
+  }
+
+  res.json({
+    user: freshUser,
+    customer: customerRecord,
   });
 }));
 

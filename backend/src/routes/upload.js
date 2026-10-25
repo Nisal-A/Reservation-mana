@@ -1,47 +1,44 @@
+// backend/src/routes/upload.js
+// Admin image upload route (up to 8 images per request)
+
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { verifyToken, requireRole } = require('../middleware/auth');
+const { createUploader } = require('../middleware/upload');
 
 const router = express.Router();
+const uploader = createUploader();
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, '../../public/uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+// POST /api/upload — upload room images (admin only)
+router.post(
+  '/',
+  verifyToken,
+  requireRole('admin'),
+  (req, res, next) => {
+    uploader.any()(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({ message: err.message, errors: [] });
+      }
+      next();
+    });
+  },
+  (req, res) => {
+    const files = req.files || [];
+    if (files.length === 0) {
+      return res.status(400).json({ message: 'No file uploaded.', errors: [] });
     }
-});
 
-const upload = multer({ 
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only images are allowed'));
-        }
+    if (files.length > 8) {
+      return res.status(400).json({ message: 'Maximum 8 files allowed in one request.', errors: [] });
     }
-});
 
-// POST /api/upload
-router.post('/', verifyToken, requireRole('admin'), upload.single('image'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ message: 'No image uploaded' });
-    }
-    // Return relative path so frontend can construct URL
-    const imageUrl = `/uploads/${req.file.filename}`;
-    res.status(200).json({ imageUrl });
-});
+    const paths = files.map((f) => `/uploads/${f.filename}`);
+
+    res.status(200).json({
+      imageUrl: paths[0],
+      imageUrls: paths,
+      paths,
+    });
+  }
+);
 
 module.exports = router;

@@ -85,7 +85,21 @@ async function ensureTestUsers() {
     tokenStaff,
     custAId,
     custBId,
+    staffUserId,
   };
+}
+
+async function cleanReservation(roomId, checkIn, checkOut) {
+  const [rows] = await pool.query(
+    'SELECT reservation_id FROM reservations WHERE room_id = ? AND check_in_date = ? AND check_out_date = ?',
+    [roomId, checkIn, checkOut]
+  );
+  if (rows.length > 0) {
+    const ids = rows.map((r) => r.reservation_id);
+    await pool.query('DELETE FROM reviews WHERE reservation_id IN (?)', [ids]);
+    await pool.query('DELETE FROM payments WHERE reservation_id IN (?)', [ids]);
+    await pool.query('DELETE FROM reservations WHERE reservation_id IN (?)', [ids]);
+  }
 }
 
 async function request(baseUrl, { method = 'GET', path, token, body }) {
@@ -139,7 +153,7 @@ async function run() {
   console.log(`📡 Test server running on ${baseUrl}`);
 
   try {
-    const { tokenA, tokenB, tokenStaff, custAId } = await ensureTestUsers();
+    const { tokenA, tokenB, tokenStaff, custAId, custBId, staffUserId } = await ensureTestUsers();
 
     // Pick a test room
     const [rooms] = await pool.query("SELECT * FROM rooms WHERE status != 'maintenance' LIMIT 2");
@@ -153,10 +167,7 @@ async function run() {
     // Clean up any test reservations from previous runs on far future dates
     const farInCheck = addDays(today(), 120);
     const farOutCheck = addDays(today(), 122);
-    await pool.query(
-      'DELETE FROM reservations WHERE room_id = ? AND check_in_date = ? AND check_out_date = ?',
-      [testRoom.room_id, farInCheck, farOutCheck]
-    );
+    await cleanReservation(testRoom.room_id, farInCheck, farOutCheck);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Test 1: 20 parallel POST requests for the same room and dates give exactly
@@ -241,10 +252,7 @@ async function run() {
     const todayCheckOut = addDays(today(), 2);
 
     // Free room for today if needed
-    await pool.query(
-      'DELETE FROM reservations WHERE room_id = ? AND check_in_date = ? AND check_out_date = ?',
-      [testRoom2.room_id, todayCheckIn, todayCheckOut]
-    );
+    await cleanReservation(testRoom2.room_id, todayCheckIn, todayCheckOut);
 
     const urgentBookingRes = await request(baseUrl, {
       method: 'POST',
@@ -286,10 +294,7 @@ async function run() {
     const futureCheckIn = addDays(today(), 10);
     const futureCheckOut = addDays(today(), 12);
 
-    await pool.query(
-      'DELETE FROM reservations WHERE room_id = ? AND check_in_date = ? AND check_out_date = ?',
-      [testRoom.room_id, futureCheckIn, futureCheckOut]
-    );
+    await cleanReservation(testRoom.room_id, futureCheckIn, futureCheckOut);
 
     const futureBookingRes = await request(baseUrl, {
       method: 'POST',
@@ -523,11 +528,184 @@ async function run() {
     }
     console.log(`✅ Test 11 Passed: Setting maintenance returned 409 with conflicting reservations.`);
 
-    console.log('\n🎉 ALL 11 ACCEPTANCE TESTS PASSED SUCCESSFULLY! 🎉\n');
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 12: GET /api/auth/me with an expired token gives 401
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\n--- Test 12: GET /api/auth/me with an expired token gives 401 ---');
+    const expiredToken = jwt.sign(
+      { user_id: staffUserId, username: 'admin', role: 'admin' },
+      env.JWT_SECRET,
+      { expiresIn: '-1s' }
+    );
+    const expiredRes = await request(baseUrl, {
+      method: 'GET',
+      path: '/api/auth/me',
+      token: expiredToken,
+    });
+    console.log(`Status: ${expiredRes.status}, Message: ${expiredRes.data?.message}`);
+    if (expiredRes.status !== 401) {
+      throw new Error(`Test 12 Failed: Expected 401 for expired token, got ${expiredRes.status}`);
+    }
+    console.log('✅ Test 12 Passed: GET /api/auth/me with an expired token gave 401.');
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 13: An admin deleting themselves gets 409
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\n--- Test 13: Admin deleting themselves gets 409 ---');
+    const selfDeleteRes = await request(baseUrl, {
+      method: 'DELETE',
+      path: `/api/users/${staffUserId}`,
+      token: tokenStaff,
+    });
+    console.log(`Status: ${selfDeleteRes.status}, Message: ${selfDeleteRes.data?.message}`);
+    if (selfDeleteRes.status !== 409) {
+      throw new Error(`Test 13 Failed: Expected 409 for admin self-delete, got ${selfDeleteRes.status}`);
+    }
+    console.log('✅ Test 13 Passed: Admin deleting themselves correctly returned 409.');
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 14: A .php upload is rejected
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\n--- Test 14: .php upload is rejected with 400 ---');
+    const phpFormData = new FormData();
+    phpFormData.append('image', new Blob(['<?php phpinfo(); ?>'], { type: 'application/x-php' }), 'shell.php');
+    const phpUploadRes = await fetch(`${baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${tokenStaff}`,
+      },
+      body: phpFormData,
+    });
+    const phpData = await phpUploadRes.json().catch(() => ({}));
+    console.log(`Status: ${phpUploadRes.status}, Message: ${phpData.message}`);
+    if (phpUploadRes.status !== 400) {
+      throw new Error(`Test 14 Failed: Expected 400 for .php file upload, got ${phpUploadRes.status}`);
+    }
+    console.log('✅ Test 14 Passed: .php upload was rejected with 400.');
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 15: A customer can submit and list their own review
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\n--- Test 15: Customer submits and lists their own review ---');
+    // First, complete check-out of urgentRef (which was fully paid in Test 7)
+    const coRes = await request(baseUrl, {
+      method: 'PATCH',
+      path: `/api/reservations/${urgentRef}/check-out`,
+      token: tokenStaff,
+      body: {},
+    });
+    if (coRes.status !== 200) {
+      throw new Error(`Test 15 Setup Failed: Expected 200 for checkout, got ${coRes.status}`);
+    }
+
+    const [urgentRows] = await pool.query('SELECT reservation_id FROM reservations WHERE booking_ref = ?', [urgentRef]);
+    const urgentReservationId = urgentRows[0].reservation_id;
+
+    // Clean up previous test review if any
+    await pool.query('DELETE FROM reviews WHERE reservation_id = ?', [urgentReservationId]);
+
+    // Customer A submits review
+    const postReviewRes = await request(baseUrl, {
+      method: 'POST',
+      path: '/api/reviews',
+      token: tokenA,
+      body: {
+        reservation_id: urgentReservationId,
+        rating: 5,
+        review_text: 'Had an absolutely incredible time here! Highly recommended.',
+      },
+    });
+    console.log(`Submit review status: ${postReviewRes.status}, Message: ${postReviewRes.data?.message}`);
+    if (postReviewRes.status !== 201) {
+      throw new Error(`Test 15 Failed: Expected 201 for review submission, got ${postReviewRes.status}`);
+    }
+
+    // Customer A lists own reviews
+    const listReviewsCustA = await request(baseUrl, {
+      method: 'GET',
+      path: '/api/reviews',
+      token: tokenA,
+    });
+    const hasMyReview = listReviewsCustA.data.some((r) => r.reservation_id === urgentReservationId);
+    if (!hasMyReview) {
+      throw new Error("Test 15 Failed: Customer A's review was not found in their own review list");
+    }
+
+    // Customer B lists reviews (should NOT see Customer A's unapproved review)
+    const listReviewsCustB = await request(baseUrl, {
+      method: 'GET',
+      path: '/api/reviews',
+      token: tokenB,
+    });
+    const leakedToCustB = listReviewsCustB.data.some((r) => r.reservation_id === urgentReservationId);
+    if (leakedToCustB) {
+      throw new Error("Test 15 Failed: Customer B can see Customer A's review!");
+    }
+    console.log('✅ Test 15 Passed: Customer submitted and listed their own review successfully.');
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 16: Calendar shows stay from 2026-11-10 to 2026-11-13 on nights 10, 11, 12
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\n--- Test 16: Calendar shows stay on exactly nights 10, 11, and 12 ---');
+    // Clean up any test booking on 2026-11-10 to 2026-11-13
+    await cleanReservation(testRoom.room_id, '2026-11-10', '2026-11-13');
+
+    const calBookingRes = await request(baseUrl, {
+      method: 'POST',
+      path: '/api/reservations/staff',
+      token: tokenStaff,
+      body: {
+        customer_id: custAId,
+        room_id: testRoom.room_id,
+        check_in_date: '2026-11-10',
+        check_out_date: '2026-11-13',
+        guests: 1,
+      },
+    });
+    if (calBookingRes.status !== 201) {
+      throw new Error(`Test 16 Setup Failed: Could not create booking: ${JSON.stringify(calBookingRes.data)}`);
+    }
+    const calBookingRef = calBookingRes.data.booking_ref;
+
+    const calRes = await request(baseUrl, {
+      method: 'GET',
+      path: '/api/calendar?year=2026&month=11',
+      token: tokenStaff,
+    });
+    if (calRes.status !== 200 || !calRes.data?.rooms) {
+      throw new Error(`Test 16 Failed: Expected 200 calendar response, got ${calRes.status}`);
+    }
+
+    const roomCal = calRes.data.rooms.find((r) => r.room_id === testRoom.room_id);
+    if (!roomCal) {
+      throw new Error(`Test 16 Failed: Test room ${testRoom.room_id} not in calendar`);
+    }
+
+    const d9 = roomCal.days.find((d) => d.date === '2026-11-09');
+    const d10 = roomCal.days.find((d) => d.date === '2026-11-10');
+    const d11 = roomCal.days.find((d) => d.date === '2026-11-11');
+    const d12 = roomCal.days.find((d) => d.date === '2026-11-12');
+    const d13 = roomCal.days.find((d) => d.date === '2026-11-13');
+
+    console.log(`Days status: 09th=${d9?.status}, 10th=${d10?.status}, 11th=${d11?.status}, 12th=${d12?.status}, 13th=${d13?.status}`);
+    if (
+      d10?.status !== 'reserved' || d10?.booking_ref !== calBookingRef ||
+      d11?.status !== 'reserved' || d11?.booking_ref !== calBookingRef ||
+      d12?.status !== 'reserved' || d12?.booking_ref !== calBookingRef ||
+      d9?.status === 'reserved' || d13?.status === 'reserved'
+    ) {
+      throw new Error(
+        `Test 16 Failed: Expected stay on nights 10, 11, 12 only. Got: ` +
+        `09th=${d9?.status}, 10th=${d10?.status}, 11th=${d11?.status}, 12th=${d12?.status}, 13th=${d13?.status}`
+      );
+    }
+    console.log('✅ Test 16 Passed: Calendar shows stay on exactly nights 10, 11, and 12.');
+
+    console.log('\n🎉 ALL 16 ACCEPTANCE TESTS PASSED SUCCESSFULLY! 🎉\n');
+    process.exit(0);
   } finally {
     server.close();
     await pool.end();
-    process.exit(0);
   }
 }
 

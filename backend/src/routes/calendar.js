@@ -1,82 +1,128 @@
-/**
- * calendar.js — Room Availability Calendar API
- * GET /api/calendar?year=YYYY&month=MM
- * Returns all rooms with their reservation status per day of the month.
- * Admin & Reception roles only (guest names visible).
- */
+// backend/src/routes/calendar.js
+// Staff Room Availability Calendar API
+
 const express = require('express');
+const { z } = require('zod');
 const pool = require('../config/db');
 const { verifyToken, requireRole } = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const asyncHandler = require('../middleware/asyncHandler');
+const { today, addDays } = require('../utils/dates');
 
 const router = express.Router();
 
-// GET /api/calendar
-router.get('/', verifyToken, requireRole('admin', 'reception'), async (req, res) => {
-  try {
-    const year  = parseInt(req.query.year)  || new Date().getFullYear();
-    const month = parseInt(req.query.month) || new Date().getMonth() + 1;
+// Staff only
+router.use(verifyToken, requireRole('admin', 'reception'));
 
-    // Build first and last day of the requested month
-    const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
-    const lastDay  = new Date(year, month, 0).toISOString().split('T')[0];
+const calendarQuerySchema = z.object({
+  query: z.object({
+    year: z.coerce.number().int().min(2000).max(2100).optional(),
+    month: z.coerce.number().int().min(1).max(12).optional(),
+    room_type: z.string().optional(),
+    room_number: z.string().optional(),
+  }),
+});
 
-    // Fetch all rooms (with optional filters)
-    const { room_type, room_number, floor } = req.query;
-    let roomQuery = 'SELECT room_id, room_number, room_type, status, floor FROM rooms WHERE 1=1';
+router.get(
+  '/',
+  validate(calendarQuerySchema),
+  asyncHandler(async (req, res) => {
+    const todayStr = today();
+    const [currentYear, currentMonth] = todayStr.split('-').map(Number);
+
+    const year = req.query.year || currentYear;
+    const month = req.query.month || currentMonth;
+
+    // Number of days in the requested month (UTC-safe, no timezone shift)
+    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+    const monthStr = String(month).padStart(2, '0');
+    const firstDay = `${year}-${monthStr}-01`;
+    const lastDay = `${year}-${monthStr}-${String(daysInMonth).padStart(2, '0')}`;
+    const afterLastDay = addDays(lastDay, 1);
+
+    // Fetch rooms (NO floor column or filter)
+    const { room_type, room_number } = req.query;
+    let roomQuery = 'SELECT room_id, room_number, room_type, status, price, capacity FROM rooms WHERE 1=1';
     const roomParams = [];
-    if (room_type)   { roomQuery += ' AND room_type = ?';   roomParams.push(room_type); }
-    if (room_number) { roomQuery += ' AND room_number = ?'; roomParams.push(room_number); }
-    if (floor)       { roomQuery += ' AND floor = ?';       roomParams.push(floor); }
-    roomQuery += ' ORDER BY room_number ASC';
 
-    const [rooms] = await pool.query(roomQuery, roomParams);
-
-    // Fetch reservations that overlap with the month
-    const [reservations] = await pool.query(`
-      SELECT r.reservation_id, r.room_id, r.check_in_date, r.check_out_date,
-             r.status, c.name AS guest_name
-      FROM reservations r
-      JOIN customers c ON r.customer_id = c.customer_id
-      WHERE r.status NOT IN ('cancelled')
-        AND r.check_in_date <= ? AND r.check_out_date >= ?
-      ORDER BY r.check_in_date ASC
-    `, [lastDay, firstDay]);
-
-    // Build a map: room_id -> reservations[]
-    const resByRoom = {};
-    for (const res of reservations) {
-      if (!resByRoom[res.room_id]) resByRoom[res.room_id] = [];
-      resByRoom[res.room_id].push(res);
+    if (room_type) {
+      roomQuery += ' AND room_type = ?';
+      roomParams.push(room_type);
+    }
+    if (room_number) {
+      roomQuery += ' AND room_number = ?';
+      roomParams.push(room_number);
     }
 
-    // Build day-status for each room across the month
-    const daysInMonth = new Date(year, month, 0).getDate();
+    roomQuery += ' ORDER BY room_number ASC';
+    const [rooms] = await pool.query(roomQuery, roomParams);
 
-    const calendarData = rooms.map((room) => {
+    // Fetch active reservations that overlap with this month
+    const [reservations] = await pool.query(
+      `SELECT r.reservation_id, r.booking_ref, r.room_id,
+              DATE_FORMAT(r.check_in_date, '%Y-%m-%d') AS check_in_date,
+              DATE_FORMAT(r.check_out_date, '%Y-%m-%d') AS check_out_date,
+              r.status, c.name AS guest_name
+       FROM reservations r
+       JOIN customers c ON r.customer_id = c.customer_id
+       WHERE r.status IN ('checked_in', 'confirmed', 'pending')
+         AND r.check_in_date < ?
+         AND r.check_out_date > ?
+       ORDER BY
+         CASE r.status
+           WHEN 'checked_in' THEN 1
+           WHEN 'confirmed' THEN 2
+           WHEN 'pending' THEN 3
+           ELSE 4
+         END ASC,
+         r.check_in_date ASC`,
+      [afterLastDay, firstDay]
+    );
+
+    // Group reservations by room_id
+    const resByRoom = new Map();
+    for (const r of reservations) {
+      if (!resByRoom.has(r.room_id)) {
+        resByRoom.set(r.room_id, []);
+      }
+      resByRoom.get(r.room_id).push(r);
+    }
+
+    // Build the day grid for each room
+    const calendarRooms = rooms.map((room) => {
+      const roomReservations = resByRoom.get(room.room_id) || [];
       const days = [];
+
       for (let d = 1; d <= daysInMonth; d++) {
-        const date = new Date(year, month - 1, d);
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = `${year}-${monthStr}-${String(d).padStart(2, '0')}`;
 
-        // Find if any reservation covers this day
-        const res = (resByRoom[room.room_id] || []).find((r) => {
-          return dateStr >= r.check_in_date.toISOString?.().split('T')[0] || r.check_in_date.slice(0,10)
-            && dateStr < (r.check_out_date.toISOString?.().split('T')[0] || r.check_out_date.slice(0,10));
-        });
+        // A stay occupies night dateStr if dateStr >= check_in_date AND dateStr < check_out_date
+        const matchingRes = roomReservations.find(
+          (r) => dateStr >= r.check_in_date && dateStr < r.check_out_date
+        );
 
-        let dayStatus = room.status;
+        let dayStatus;
+        let bookingRef = null;
         let guestName = null;
 
-        if (res) {
-          const cin  = typeof res.check_in_date  === 'string' ? res.check_in_date  : res.check_in_date.toISOString().split('T')[0];
-          const cout = typeof res.check_out_date === 'string' ? res.check_out_date : res.check_out_date.toISOString().split('T')[0];
-          if (dateStr >= cin && dateStr < cout) {
-            dayStatus = res.status === 'checked_in' ? 'occupied' : 'reserved';
-            guestName = res.guest_name;
-          }
+        if (matchingRes) {
+          dayStatus = matchingRes.status === 'checked_in' ? 'occupied' : 'reserved';
+          bookingRef = matchingRes.booking_ref;
+          guestName = matchingRes.guest_name;
+        } else if (room.status === 'maintenance') {
+          dayStatus = 'maintenance';
+        } else {
+          dayStatus = 'available';
         }
 
-        days.push({ date: dateStr, day: d, status: dayStatus, guest_name: guestName });
+        days.push({
+          date: dateStr,
+          day: d,
+          status: dayStatus,
+          booking_ref: bookingRef,
+          guest_name: guestName,
+        });
       }
 
       return {
@@ -84,22 +130,27 @@ router.get('/', verifyToken, requireRole('admin', 'reception'), async (req, res)
         room_number: room.room_number,
         room_type: room.room_type,
         base_status: room.status,
+        price: Number(Number(room.price).toFixed(2)),
+        capacity: Number(room.capacity),
         days,
-        reservations: (resByRoom[room.room_id] || []).map(r => ({
+        reservations: roomReservations.map((r) => ({
           reservation_id: r.reservation_id,
-          check_in_date:  typeof r.check_in_date  === 'string' ? r.check_in_date  : r.check_in_date.toISOString().split('T')[0],
-          check_out_date: typeof r.check_out_date === 'string' ? r.check_out_date : r.check_out_date.toISOString().split('T')[0],
+          booking_ref: r.booking_ref,
+          check_in_date: r.check_in_date,
+          check_out_date: r.check_out_date,
           status: r.status,
           guest_name: r.guest_name,
         })),
       };
     });
 
-    res.json({ year, month, days_in_month: daysInMonth, rooms: calendarData });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error.' });
-  }
-});
+    res.json({
+      year,
+      month,
+      days_in_month: daysInMonth,
+      rooms: calendarRooms,
+    });
+  })
+);
 
 module.exports = router;
