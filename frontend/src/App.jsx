@@ -14,8 +14,6 @@ import RoomManagement    from './pages/admin/RoomManagement';
 import AdminReservations from './pages/admin/Reservations';
 import Reports           from './pages/admin/Reports';
 import UserManagement    from './pages/admin/UserManagement';
-import PricingRules      from './pages/admin/PricingRules';
-import AttendanceAdmin   from './pages/admin/AttendanceAdmin';
 import ReviewsAdmin      from './pages/admin/ReviewsAdmin';
 
 // Reception Pages
@@ -37,8 +35,6 @@ import Reviews      from './pages/customer/Reviews';
 
 // Shared (Multi-role) Pages
 import AvailabilityCalendar from './pages/shared/AvailabilityCalendar';
-import Attendance           from './pages/shared/Attendance';
-import Housekeeping         from './pages/shared/Housekeeping';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -68,9 +64,6 @@ function AppRoutes() {
         <Route path="rooms"        element={<RoomManagement />} />
         <Route path="reservations" element={<AdminReservations />} />
         <Route path="reports"      element={<Reports />} />
-        <Route path="pricing"      element={<PricingRules />} />
-        <Route path="attendance"   element={<AttendanceAdmin />} />
-        <Route path="housekeeping" element={<Housekeeping />} />
         <Route path="reviews"      element={<ReviewsAdmin />} />
         <Route path="calendar"     element={<AvailabilityCalendar />} />
       </Route>
@@ -89,8 +82,6 @@ function AppRoutes() {
         <Route path="checkout"           element={<CheckOut />} />
         <Route path="search"             element={<SearchBookings />} />
         <Route path="reports"            element={<Reports />} />
-        <Route path="housekeeping"       element={<Housekeeping />} />
-        <Route path="attendance"         element={<Attendance />} />
         <Route path="calendar"           element={<AvailabilityCalendar />} />
       </Route>
 

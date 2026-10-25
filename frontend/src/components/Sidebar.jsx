@@ -4,7 +4,7 @@ import ThemeToggle from './ThemeToggle';
 import {
   LayoutDashboard, BedDouble, CalendarCheck, LogIn, LogOut,
   Search, BarChart2, Home, BookOpen, History, Users, UserCog,
-  Calendar, DollarSign, ClipboardList, Star, Clock
+  Calendar, Star
 } from 'lucide-react';
 
 const adminNav = [
@@ -15,13 +15,10 @@ const adminNav = [
     { to: '/admin/users',        icon: UserCog,       label: 'User Management' },
     { to: '/admin/rooms',        icon: BedDouble,     label: 'Room Management' },
     { to: '/admin/reservations', icon: CalendarCheck, label: 'Reservations' },
-    { to: '/admin/pricing',      icon: DollarSign,    label: 'Pricing Rules' },
-    { to: '/admin/housekeeping', icon: ClipboardList, label: 'Housekeeping' },
     { to: '/admin/reviews',      icon: Star,          label: 'Reviews' },
   ]},
   { label: 'Operations', items: [
     { to: '/admin/calendar',     icon: Calendar,      label: 'Availability Calendar' },
-    { to: '/admin/attendance',   icon: Clock,         label: 'Attendance' },
   ]},
   { label: 'Analytics', items: [
     { to: '/admin/reports',      icon: BarChart2,     label: 'Reports' },
@@ -37,8 +34,6 @@ const receptionNav = [
     { to: '/reception/checkin',            icon: LogIn,           label: 'Check-In' },
     { to: '/reception/checkout',           icon: LogOut,          label: 'Check-Out' },
     { to: '/reception/search',             icon: Search,          label: 'Search Bookings' },
-    { to: '/reception/housekeeping',       icon: ClipboardList,   label: 'Housekeeping' },
-    { to: '/reception/attendance',         icon: Clock,           label: 'My Attendance' },
     { to: '/reception/calendar',           icon: Calendar,        label: 'Availability Calendar' },
   ]},
   { label: 'Analytics', items: [

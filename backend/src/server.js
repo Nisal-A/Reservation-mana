@@ -12,8 +12,6 @@ const uploadRoutes = require('./routes/upload');
 const calendarRoutes = require('./routes/calendar');
 const { router: pricingRoutes } = require('./routes/pricing');
 const analyticsRoutes = require('./routes/analytics');
-const attendanceRoutes = require('./routes/attendance');
-const housekeepingRoutes = require('./routes/housekeeping');
 const reviewsRoutes = require('./routes/reviews');
 const exportRoutes = require('./routes/export');
 const path = require('path');
@@ -44,8 +42,6 @@ app.use('/api/upload',       uploadRoutes);
 app.use('/api/calendar',     calendarRoutes);
 app.use('/api/pricing',      pricingRoutes);
 app.use('/api/analytics',    analyticsRoutes);
-app.use('/api/attendance',   attendanceRoutes);
-app.use('/api/housekeeping', housekeepingRoutes);
 app.use('/api/reviews',      reviewsRoutes);
 app.use('/api/export',       exportRoutes);
 

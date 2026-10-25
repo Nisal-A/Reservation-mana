@@ -204,39 +204,5 @@ router.get('/rooms', async (req, res) => {
   }
 });
 
-// ─── Attendance Export ───────────────────────────────────────────────────────
-router.get('/attendance', async (req, res) => {
-  try {
-    const { format = 'csv', month, year } = req.query;
-    let query = `
-      SELECT u.username, u.role, a.date, a.clock_in, a.clock_out,
-             a.total_hours, a.status
-      FROM attendance a
-      JOIN users u ON a.user_id = u.user_id
-      WHERE 1=1
-    `;
-    const params = [];
-    if (month) { query += ' AND MONTH(a.date)=?'; params.push(month); }
-    if (year)  { query += ' AND YEAR(a.date)=?';  params.push(year); }
-    query += ' ORDER BY a.date DESC, u.username ASC';
-
-    const [rows] = await pool.query(query, params);
-    const headers = ['Employee', 'Role', 'Date', 'Clock In', 'Clock Out', 'Hours', 'Status'];
-    const data = rows.map(r => [r.username, r.role, r.date, r.clock_in, r.clock_out, r.total_hours, r.status]);
-
-    if (format === 'pdf') { writePDF(res, 'Attendance Report', headers, data); return; }
-    if (format === 'excel') {
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename="attendance.xlsx"');
-      return res.send(toExcel(headers, data));
-    }
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="attendance.csv"');
-    res.send(toCSV(headers, data));
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error.' });
-  }
-});
 
 module.exports = router;
