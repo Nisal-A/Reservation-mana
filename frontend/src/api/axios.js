@@ -1,7 +1,9 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
+import { API_URL } from '../config/env';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3001/api',
+  baseURL: API_URL,
   timeout: 10000,
 });
 
@@ -18,11 +20,21 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      localStorage.removeItem('hotel_token');
-      localStorage.removeItem('hotel_user');
-      window.location.href = '/login';
+    const status = error.response?.status;
+    const url = error.config?.url || '';
+
+    if (status === 401) {
+      const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
+      if (!isAuthEndpoint) {
+        localStorage.removeItem('hotel_token');
+        localStorage.removeItem('hotel_user');
+        window.location.href = '/login';
+      }
+    } else if (status === 403) {
+      const msg = error.response?.data?.message || 'Access denied. Insufficient permissions.';
+      toast.error(msg);
     }
+
     return Promise.reject(error);
   }
 );

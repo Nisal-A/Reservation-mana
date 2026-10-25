@@ -7,6 +7,7 @@ import { Check, X, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageHeader, PageLoader, EmptyState, StatusBadge, StatCard, ConfirmModal } from '../../components/UI';
+import { assetUrl } from '../../config/env';
 
 function StarDisplay({ value }) {
   return (
@@ -127,7 +128,7 @@ export default function ReviewsAdmin() {
 
               {r.review_text && <p className="review-text">{r.review_text}</p>}
               {r.image_url && (
-                <img src={`http://localhost:3001${r.image_url}`} alt="Review" className="review-image" style={{ maxHeight: 160 }} />
+                <img src={assetUrl(r.image_url)} alt="Review" className="review-image" style={{ maxHeight: 160 }} />
               )}
 
               {/* Actions */}

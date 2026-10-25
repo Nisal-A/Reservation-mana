@@ -1,106 +1,128 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { z } = require('zod');
+const rateLimit = require('express-rate-limit');
 const pool = require('../config/db');
-require('dotenv').config();
+const env = require('../config/env');
+const validate = require('../middleware/validate');
+const asyncHandler = require('../middleware/asyncHandler');
 
 const router = express.Router();
 
-// POST /api/auth/login
-router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ message: 'Username and password are required.' });
-  }
-
-  try {
-    const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
-    if (rows.length === 0) {
-      return res.status(401).json({ message: 'Invalid credentials.' });
-    }
-
-    const user = rows[0];
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials.' });
-    }
-
-    // If customer, get customer details
-    let customerData = null;
-    if (user.role === 'customer') {
-      const [custRows] = await pool.query(
-        'SELECT * FROM customers WHERE user_id = ?',
-        [user.user_id]
-      );
-      if (custRows.length > 0) customerData = custRows[0];
-    }
-
-    const token = jwt.sign(
-      {
-        user_id: user.user_id,
-        username: user.username,
-        role: user.role,
-        customer_id: customerData ? customerData.customer_id : null,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-    );
-
-    res.json({
-      token,
-      user: {
-        user_id: user.user_id,
-        username: user.username,
-        role: user.role,
-        customer_id: customerData ? customerData.customer_id : null,
-        name: customerData ? customerData.name : user.username,
-      },
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error.' });
-  }
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many attempts from this IP, please try again after 15 minutes.', errors: [] },
 });
 
-// POST /api/auth/register (Customer self-registration)
-router.post('/register', async (req, res) => {
-  const { username, password, name, email, phone } = req.body;
-  if (!username || !password || !name || !email) {
-    return res.status(400).json({ message: 'Username, password, name, and email are required.' });
+const loginSchema = z.object({
+  username: z.string().min(1, 'Username is required'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+const registerSchema = z.object({
+  username: z.string().regex(/^[a-zA-Z0-9_]{3,30}$/, 'Username must be 3-30 characters long and contain only letters, numbers, and underscores'),
+  password: z.string().regex(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/, 'Password must be at least 8 characters long and contain both letters and numbers'),
+  name: z.string().min(1, 'Name is required').max(100),
+  email: z.string().email('Valid email is required'),
+  phone: z.string().optional().or(z.literal('')),
+});
+
+// POST /api/auth/login
+router.post('/login', authLimiter, validate(loginSchema), asyncHandler(async (req, res) => {
+  const { username, password } = req.body;
+
+  const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+  if (rows.length === 0) {
+    return res.status(401).json({ message: 'Invalid credentials.', errors: [] });
   }
 
+  const user = rows[0];
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    return res.status(401).json({ message: 'Invalid credentials.', errors: [] });
+  }
+
+  // If customer, get customer details
+  let customerData = null;
+  if (user.role === 'customer') {
+    const [custRows] = await pool.query(
+      'SELECT * FROM customers WHERE user_id = ?',
+      [user.user_id]
+    );
+    if (custRows.length > 0) customerData = custRows[0];
+  }
+
+  const token = jwt.sign(
+    {
+      user_id: user.user_id,
+      username: user.username,
+      role: user.role,
+      customer_id: customerData ? customerData.customer_id : null,
+    },
+    env.JWT_SECRET,
+    { expiresIn: env.JWT_EXPIRES_IN }
+  );
+
+  res.json({
+    token,
+    user: {
+      user_id: user.user_id,
+      username: user.username,
+      role: user.role,
+      customer_id: customerData ? customerData.customer_id : null,
+      name: customerData ? customerData.name : user.username,
+    },
+  });
+}));
+
+// POST /api/auth/register (Customer self-registration)
+router.post('/register', authLimiter, validate(registerSchema), asyncHandler(async (req, res) => {
+  const { username, password, name, email, phone } = req.body;
+
+  const conn = await pool.getConnection();
   try {
+    await conn.beginTransaction();
+
     // Check existing username
-    const [existing] = await pool.query('SELECT user_id FROM users WHERE username = ?', [username]);
+    const [existing] = await conn.query('SELECT user_id FROM users WHERE username = ?', [username]);
     if (existing.length > 0) {
-      return res.status(409).json({ message: 'Username already taken.' });
+      await conn.rollback();
+      return res.status(409).json({ message: 'Username already taken.', errors: [] });
     }
 
     // Check existing email
-    const [existingEmail] = await pool.query('SELECT customer_id FROM customers WHERE email = ?', [email]);
+    const [existingEmail] = await conn.query('SELECT customer_id FROM customers WHERE email = ?', [email]);
     if (existingEmail.length > 0) {
-      return res.status(409).json({ message: 'Email already registered.' });
+      await conn.rollback();
+      return res.status(409).json({ message: 'Email already registered.', errors: [] });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
-    const [userResult] = await pool.query(
+    const [userResult] = await conn.query(
       'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
       [username, hashedPassword, 'customer']
     );
 
     const userId = userResult.insertId;
 
-    await pool.query(
+    await conn.query(
       'INSERT INTO customers (user_id, name, email, phone) VALUES (?, ?, ?, ?)',
       [userId, name, email, phone || null]
     );
 
+    await conn.commit();
     res.status(201).json({ message: 'Registration successful. Please log in.' });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error.' });
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
   }
-});
+}));
 
 module.exports = router;

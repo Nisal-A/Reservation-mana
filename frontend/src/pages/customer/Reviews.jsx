@@ -3,10 +3,10 @@
  * Customers can rate and review their completed stays.
  */
 import { useState, useEffect } from 'react';
-import { Star } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { PageHeader, PageLoader, EmptyState, StatusBadge } from '../../components/UI';
+import { assetUrl } from '../../config/env';
 
 // ─── Star Rating Component ────────────────────────────────────────────────────
 function StarRating({ value, onChange, size = 1.5 }) {
@@ -141,7 +141,7 @@ export default function Reviews() {
                 <StatusBadge status={r.status} />
               </div>
               {r.review_text && <p className="review-text">{r.review_text}</p>}
-              {r.image_url && <img src={`http://localhost:3001${r.image_url}`} alt="Review" className="review-image" />}
+              {r.image_url && <img src={assetUrl(r.image_url)} alt="Review" className="review-image" />}
               {r.status === 'pending' && (
                 <div className="alert alert-info" style={{ marginTop: 12, fontSize: '0.82rem' }}>
                   ⏳ Your review is pending admin approval.

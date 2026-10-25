@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, Hotel } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Login() {
@@ -27,13 +27,6 @@ export default function Login() {
     }
   };
 
-  const fillDemo = (role) => {
-    const creds = {
-      admin:     { username: 'admin',     password: 'password' },
-      reception: { username: 'reception', password: 'password' },
-    };
-    if (creds[role]) setForm(creds[role]);
-  };
 
   return (
     <div className="login-page">
@@ -99,15 +92,6 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Quick demo buttons */}
-        <div style={{ marginTop: 20, display: 'flex', gap: 8 }}>
-          <button className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => fillDemo('admin')}>
-            Fill Admin
-          </button>
-          <button className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => fillDemo('reception')}>
-            Fill Reception
-          </button>
-        </div>
 
         <div className="login-footer">
           New customer?{' '}
