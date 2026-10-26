@@ -1,130 +1,213 @@
 // backend/src/routes/reports.js
-// Reports API (admin only)
+// Enterprise Reports API (admin only)
+// All endpoints protected with verifyToken + requireRole('admin')
+// Validated with Zod schemas and backed by backend/src/services/reports.js
 
 const express = require('express');
+const { z } = require('zod');
 const pool = require('../config/db');
 const { verifyToken, requireRole } = require('../middleware/auth');
+const validate = require('../middleware/validate');
 const asyncHandler = require('../middleware/asyncHandler');
-const { today } = require('../utils/dates');
+const reportsService = require('../services/reports');
 
 const router = express.Router();
 
-// All reports routes require admin
+// All routes require admin role
 router.use(verifyToken, requireRole('admin'));
 
-// GET /api/reports/summary — admin only
+// ─── VALIDATION SCHEMAS ──────────────────────────────────────────────────────
+
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+const dateMessage = "Invalid date format. Expected 'YYYY-MM-DD'";
+
+const commonQuerySchema = z.object({
+  query: z
+    .object({
+      from: z.string().regex(dateRegex, dateMessage).optional(),
+      to: z.string().regex(dateRegex, dateMessage).optional(),
+      compare: z.enum(['none', 'previous_period', 'previous_year']).default('none'),
+      room_type: z.string().optional(),
+      source: z.enum(['online', 'reception', 'admin']).optional(),
+    })
+    .refine(
+      (q) => {
+        if (q.from && q.to) {
+          return q.to >= q.from;
+        }
+        return true;
+      },
+      {
+        message: "'to' date must be greater than or equal to 'from' date",
+        path: ['to'],
+      }
+    ),
+});
+
+const revenueTrendQuerySchema = z.object({
+  query: z
+    .object({
+      from: z.string().regex(dateRegex, dateMessage).optional(),
+      to: z.string().regex(dateRegex, dateMessage).optional(),
+      compare: z.enum(['none', 'previous_period', 'previous_year']).default('none'),
+      room_type: z.string().optional(),
+      source: z.enum(['online', 'reception', 'admin']).optional(),
+      granularity: z.enum(['day', 'week', 'month']).optional(),
+    })
+    .refine(
+      (q) => {
+        if (q.from && q.to) {
+          return q.to >= q.from;
+        }
+        return true;
+      },
+      {
+        message: "'to' date must be greater than or equal to 'from' date",
+        path: ['to'],
+      }
+    ),
+});
+
+const operationsQuerySchema = z.object({
+  query: z.object({
+    room_type: z.string().optional(),
+    source: z.enum(['online', 'reception', 'admin']).optional(),
+  }),
+});
+
+const reservationsDrilldownQuerySchema = z.object({
+  query: z
+    .object({
+      from: z.string().regex(dateRegex, dateMessage).optional(),
+      to: z.string().regex(dateRegex, dateMessage).optional(),
+      status: z
+        .enum(['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled', 'no_show'])
+        .optional(),
+      payment_status: z.enum(['unpaid', 'partial', 'paid', 'refunded']).optional(),
+      source: z.enum(['online', 'reception', 'admin']).optional(),
+      room_type: z.string().optional(),
+      q: z.string().optional(),
+      sort: z.string().optional(),
+      sort_dir: z.enum(['asc', 'desc']).optional(),
+      page: z.coerce.number().int().min(1).default(1),
+      limit: z.coerce.number().int().min(1).max(100).default(50),
+    })
+    .refine(
+      (q) => {
+        if (q.from && q.to) {
+          return q.to >= q.from;
+        }
+        return true;
+      },
+      {
+        message: "'to' date must be greater than or equal to 'from' date",
+        path: ['to'],
+      }
+    ),
+});
+
+// ─── 1. GET /api/reports/overview ─────────────────────────────────────────────
 router.get(
-  '/summary',
+  '/overview',
+  validate(commonQuerySchema),
   asyncHandler(async (req, res) => {
-    const todayStr = today();
-
-    const [[{ total_reservations }]] = await pool.query(
-      "SELECT COUNT(*) AS total_reservations FROM reservations WHERE status != 'cancelled'"
-    );
-    const [[{ total_revenue }]] = await pool.query(
-      "SELECT COALESCE(SUM(total_amount), 0) AS total_revenue FROM reservations WHERE status = 'checked_out'"
-    );
-    const [[{ available_rooms }]] = await pool.query(
-      "SELECT COUNT(*) AS available_rooms FROM rooms WHERE status = 'available'"
-    );
-    const [[{ occupied_rooms }]] = await pool.query(
-      "SELECT COUNT(*) AS occupied_rooms FROM rooms WHERE status = 'occupied'"
-    );
-    const [[{ total_rooms }]] = await pool.query(
-      'SELECT COUNT(*) AS total_rooms FROM rooms'
-    );
-    const [[{ todays_checkins }]] = await pool.query(
-      "SELECT COUNT(*) AS todays_checkins FROM reservations WHERE check_in_date = ? AND status IN ('confirmed','checked_in')",
-      [todayStr]
-    );
-    const [[{ todays_checkouts }]] = await pool.query(
-      "SELECT COUNT(*) AS todays_checkouts FROM reservations WHERE check_out_date = ? AND status = 'checked_in'",
-      [todayStr]
-    );
-    const [[{ pending_reservations }]] = await pool.query(
-      "SELECT COUNT(*) AS pending_reservations FROM reservations WHERE status = 'pending'"
-    );
-
-    res.json({
-      total_reservations,
-      total_revenue: Number(Number(total_revenue).toFixed(2)),
-      available_rooms,
-      occupied_rooms,
-      total_rooms,
-      todays_checkins,
-      todays_checkouts,
-      pending_reservations,
-      occupancy_rate: total_rooms > 0 ? ((occupied_rooms / total_rooms) * 100).toFixed(1) : 0,
-    });
+    const result = await reportsService.getOverview(pool, req.query);
+    res.json(result);
   })
 );
 
-// GET /api/reports/revenue — monthly revenue for past 6 months
+// ─── 2. GET /api/reports/revenue-trend ────────────────────────────────────────
 router.get(
-  '/revenue',
+  '/revenue-trend',
+  validate(revenueTrendQuerySchema),
   asyncHandler(async (req, res) => {
-    const todayStr = today();
-    const [rows] = await pool.query(
-      `SELECT 
-        DATE_FORMAT(check_out_date, '%Y-%m') AS month,
-        SUM(total_amount) AS revenue,
-        COUNT(*) AS checkouts
-      FROM reservations
-      WHERE status = 'checked_out'
-        AND check_out_date >= DATE_SUB(?, INTERVAL 6 MONTH)
-      GROUP BY DATE_FORMAT(check_out_date, '%Y-%m')
-      ORDER BY month ASC`,
-      [todayStr]
-    );
-    res.json(rows);
+    const result = await reportsService.getRevenueTrend(pool, req.query);
+    res.json(result);
   })
 );
 
-// GET /api/reports/rooms — room booking stats
+// ─── 3. GET /api/reports/occupancy-trend ──────────────────────────────────────
 router.get(
-  '/rooms',
+  '/occupancy-trend',
+  validate(commonQuerySchema),
   asyncHandler(async (req, res) => {
-    const [rows] = await pool.query(`
-      SELECT rm.room_number, rm.room_type, rm.price,
-             COUNT(r.reservation_id) AS total_bookings,
-             COALESCE(SUM(r.total_amount), 0) AS total_revenue
-      FROM rooms rm
-      LEFT JOIN reservations r ON rm.room_id = r.room_id AND r.status != 'cancelled'
-      GROUP BY rm.room_id
-      ORDER BY total_bookings DESC
-    `);
-    res.json(rows);
+    const result = await reportsService.getOccupancyTrend(pool, req.query);
+    res.json(result);
   })
 );
 
-// GET /api/reports/by-status
+// ─── 4. GET /api/reports/reservations-summary ─────────────────────────────────
 router.get(
-  '/by-status',
+  '/reservations-summary',
+  validate(commonQuerySchema),
   asyncHandler(async (req, res) => {
-    const [rows] = await pool.query(`
-      SELECT status, COUNT(*) AS count
-      FROM reservations
-      GROUP BY status
-    `);
-    res.json(rows);
+    const result = await reportsService.getReservationsSummary(pool, req.query);
+    res.json(result);
   })
 );
 
-// GET /api/reports/room-types
+// ─── 5. GET /api/reports/room-performance ─────────────────────────────────────
 router.get(
-  '/room-types',
+  '/room-performance',
+  validate(commonQuerySchema),
   asyncHandler(async (req, res) => {
-    const [rows] = await pool.query(`
-      SELECT rm.room_type,
-             COUNT(r.reservation_id) AS bookings,
-             COALESCE(SUM(r.total_amount), 0) AS revenue
-      FROM rooms rm
-      LEFT JOIN reservations r ON rm.room_id = r.room_id AND r.status != 'cancelled'
-      GROUP BY rm.room_type
-      ORDER BY bookings DESC
-    `);
-    res.json(rows);
+    const result = await reportsService.getRoomPerformance(pool, req.query);
+    res.json(result);
   })
 );
+
+// ─── 6. GET /api/reports/customers ───────────────────────────────────────────
+router.get(
+  '/customers',
+  validate(commonQuerySchema),
+  asyncHandler(async (req, res) => {
+    const result = await reportsService.getCustomersReport(pool, req.query);
+    res.json(result);
+  })
+);
+
+// ─── 7. GET /api/reports/payments ────────────────────────────────────────────
+router.get(
+  '/payments',
+  validate(commonQuerySchema),
+  asyncHandler(async (req, res) => {
+    const result = await reportsService.getPaymentsReport(pool, req.query);
+    res.json(result);
+  })
+);
+
+// ─── 8. GET /api/reports/operations ──────────────────────────────────────────
+router.get(
+  '/operations',
+  validate(operationsQuerySchema),
+  asyncHandler(async (req, res) => {
+    const result = await reportsService.getOperationsReport(pool, req.query);
+    res.json(result);
+  })
+);
+
+// ─── 9. GET /api/reports/reservations ─────────────────────────────────────────
+router.get(
+  '/reservations',
+  validate(reservationsDrilldownQuerySchema),
+  asyncHandler(async (req, res) => {
+    const result = await reportsService.getReservationsDrilldown(pool, req.query);
+    res.json(result);
+  })
+);
+
+// ─── 10. GET /api/reports/definitions ─────────────────────────────────────────
+router.get('/definitions', (req, res) => {
+  const definitions = reportsService.getDefinitions();
+  res.json({
+    range: null,
+    compare_range: null,
+    filters: null,
+    generated_at: new Date().toISOString(),
+    data: definitions,
+    definitions,
+    previous: null,
+  });
+});
 
 module.exports = router;

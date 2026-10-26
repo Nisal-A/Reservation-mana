@@ -13,7 +13,6 @@ const customersRoutes = require('./routes/customers');
 const uploadRoutes = require('./routes/upload');
 const calendarRoutes = require('./routes/calendar');
 const { router: pricingRoutes } = require('./routes/pricing');
-const analyticsRoutes = require('./routes/analytics');
 const reviewsRoutes = require('./routes/reviews');
 const exportRoutes = require('./routes/export');
 const publicRoutes = require('./routes/public');
@@ -56,7 +55,6 @@ app.use('/api/upload',       uploadRoutes);
 // ─── Enterprise Routes ────────────────────────────────────────────────────────
 app.use('/api/calendar',     calendarRoutes);
 app.use('/api/pricing',      pricingRoutes);
-app.use('/api/analytics',    analyticsRoutes);
 app.use('/api/reviews',      reviewsRoutes);
 app.use('/api/export',       exportRoutes);
 app.use('/api/public',       publicRoutes);
