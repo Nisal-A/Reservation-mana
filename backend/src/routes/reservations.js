@@ -66,6 +66,15 @@ const refParamSchema = z.object({
   }),
 });
 
+const checkInSchema = z.object({
+  params: z.object({
+    ref: z.string().min(1, 'booking_ref is required'),
+  }),
+  body: z.object({
+    id_verified: z.boolean().optional(),
+  }).passthrough().optional().default({}),
+});
+
 const staffListQuerySchema = z.object({
   query: z.object({
     q: z.string().optional(),
@@ -348,12 +357,13 @@ router.patch(
   '/:ref/check-in',
   verifyToken,
   requireRole('admin', 'reception'),
-  validate(refParamSchema),
+  validate(checkInSchema),
   asyncHandler(async (req, res, next) => {
     try {
       const updated = await reservationsService.checkIn({
         bookingRef: req.params.ref,
         userId: req.user.user_id,
+        idVerified: req.body?.id_verified,
       });
       res.json(updated);
     } catch (err) {

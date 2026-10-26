@@ -25,7 +25,8 @@ async function fetchFullReservation(connOrPool, identifier, byId = false) {
       rm.capacity AS room_capacity,
       rm.bed_type AS room_bed_type,
       rm.size_sqm AS room_size_sqm,
-      rm.view_label AS room_view_label
+      rm.view_label AS room_view_label,
+      rm.status AS room_status
     FROM reservations r
     JOIN customers c ON r.customer_id = c.customer_id
     JOIN rooms rm ON r.room_id = rm.room_id
@@ -376,7 +377,7 @@ async function markNoShow({ bookingRef, userId }) {
  * Only status 'confirmed'; today() must be >= check_in_date and < check_out_date;
  * Room must not be in maintenance and not held by another checked_in reservation.
  */
-async function checkIn({ bookingRef, userId }) {
+async function checkIn({ bookingRef, userId, idVerified }) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -450,7 +451,7 @@ async function checkIn({ bookingRef, userId }) {
        SET status = 'checked_in',
            checked_in_at = NOW()
        WHERE reservation_id = ?`,
-      [reservation.reservation_id]
+       [reservation.reservation_id]
     );
 
     await conn.query(
@@ -466,6 +467,7 @@ async function checkIn({ bookingRef, userId }) {
       details: {
         room_id: reservation.room_id,
         checked_in_at: new Date().toISOString(),
+        ...(typeof idVerified === 'boolean' ? { id_verified: idVerified } : {}),
       },
     });
 
@@ -603,10 +605,21 @@ async function getStaffDetail(bookingRef) {
     phone: reservation.customer_phone,
   };
 
+  const [occupiedRows] = await pool.query(
+    `SELECT reservation_id, booking_ref FROM reservations
+     WHERE room_id = ? AND status = 'checked_in' AND reservation_id != ?`,
+    [reservation.room_id, reservation.reservation_id]
+  );
+  const isOccupiedByOther = occupiedRows.length > 0;
+  const occupiedByRef = isOccupiedByOther ? occupiedRows[0].booking_ref : null;
+
   const room = {
     room_id: reservation.room_id,
     room_number: reservation.room_number,
     room_type: reservation.room_type,
+    status: reservation.room_status,
+    is_occupied_by_other: isOccupiedByOther,
+    occupied_by_ref: occupiedByRef,
     price: Number(reservation.room_price),
     capacity: reservation.room_capacity,
     bed_type: reservation.room_bed_type,

@@ -4240,5 +4240,97 @@ label,
   background: rgba(200, 169, 106, 0.04);
 }
 
+/* ============================================================
+   RECEIPT & PRINT MEDIA STYLES
+   ============================================================ */
+.printable-receipt {
+  background: #ffffff;
+  color: #111111;
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  padding: 32px;
+  max-width: 680px;
+  margin: 0 auto;
+}
 
+.printable-receipt h1,
+.printable-receipt h2,
+.printable-receipt h3,
+.printable-receipt h4,
+.printable-receipt p,
+.printable-receipt span,
+.printable-receipt td,
+.printable-receipt th,
+.printable-receipt div {
+  color: #111111;
+}
 
+@media print {
+  @page {
+    margin: 12mm;
+    size: auto;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide app shell, sidebar, mobile topbar, buttons, navs, modals */
+  .sidebar,
+  .mobile-topbar,
+  .no-print,
+  .btn-ui,
+  button,
+  nav,
+  aside,
+  header {
+    display: none !important;
+  }
+
+  .main-content,
+  .page-container,
+  .page-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .printable-receipt {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .printable-receipt * {
+    color: #000000 !important;
+    border-color: #cccccc !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .printable-receipt table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .printable-receipt th,
+  .printable-receipt td {
+    border-bottom: 1px solid #cccccc !important;
+    padding: 6px 4px !important;
+    color: #000000 !important;
+  }
+}
