@@ -19,8 +19,8 @@ import Profile from './portals/customer/pages/Profile';
 import Reviews from './portals/customer/pages/Reviews';
 
 // Auth Pages (Centred inside CustomerLayout)
-import Login from './pages/Login';
-import Register from './pages/Register';
+import Login from './portals/customer/pages/Login';
+import Register from './portals/customer/pages/Register';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
