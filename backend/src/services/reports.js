@@ -1184,9 +1184,10 @@ module.exports = {
         .map(([type, count]) => ({ room_type: type, bookings: count }))
         .sort((a, b) => b.bookings - a.bookings);
 
-      const top_customers = Array.from(customerMap.values())
-        .sort((a, b) => b.total_spent - a.total_spent)
-        .slice(0, 10);
+      const allCustomers = Array.from(customerMap.values()).sort(
+        (a, b) => b.total_spent - a.total_spent
+      );
+      const top_customers = allCustomers.slice(0, 10);
 
       return {
         new_customers_count: newCount,
@@ -1196,6 +1197,7 @@ module.exports = {
         avg_booking_value,
         top_room_types,
         top_customers,
+        all_customers: allCustomers,
       };
     };
 
@@ -1295,6 +1297,10 @@ module.exports = {
           bank_transfer: Number(breakdown.bank_transfer.toFixed(2)),
           online: Number(breakdown.online.toFixed(2)),
         },
+        all_transactions: rows.map((rRow) => ({
+          ...rRow,
+          amount: Number(Number(rRow.amount).toFixed(2)),
+        })),
         recent_transactions: rows.slice(0, 50).map((rRow) => ({
           ...rRow,
           amount: Number(Number(rRow.amount).toFixed(2)),
@@ -1540,9 +1546,18 @@ module.exports = {
     const { range } = resolveRangeAndCompare(from, to, 'none');
     const nextDay = addDays(range.to, 1);
 
-    const lim = Math.min(Math.max(1, parseInt(limit, 10) || 50), 100);
+    const isUncapped =
+      limit === null || limit === 0 || limit === 'all' || Number(limit) > 100;
+    const lim = isUncapped
+      ? Number(limit) > 100
+        ? parseInt(limit, 10)
+        : 50001
+      : Math.min(Math.max(1, parseInt(limit, 10) || 50), 100);
     const p = Math.max(1, parseInt(page, 10) || 1);
-    const offset = (p - 1) * lim;
+    const offset =
+      isUncapped && (limit === null || limit === 0 || limit === 'all')
+        ? 0
+        : (p - 1) * lim;
 
     let baseFilter = `
       WHERE (

@@ -14,7 +14,7 @@ const uploadRoutes = require('./routes/upload');
 const calendarRoutes = require('./routes/calendar');
 const { router: pricingRoutes } = require('./routes/pricing');
 const reviewsRoutes = require('./routes/reviews');
-const exportRoutes = require('./routes/export');
+const reportExportRoutes = require('./routes/reportExport');
 const publicRoutes = require('./routes/public');
 const frontdeskRoutes = require('./routes/frontdesk');
 
@@ -33,7 +33,7 @@ app.use(cors({
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
-  exposedHeaders: ['X-Total-Count'],
+  exposedHeaders: ['X-Total-Count', 'Content-Disposition'],
 }));
 
 // Body parsers
@@ -44,21 +44,21 @@ app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 // ─── Existing Routes ──────────────────────────────────────────────────────────
-app.use('/api/auth',         authRoutes);
-app.use('/api/rooms',        roomRoutes);
-app.use('/api/reservations', reservationRoutes);
-app.use('/api/reports',      reportRoutes);
-app.use('/api/users',        usersRoutes);
-app.use('/api/customers',    customersRoutes);
-app.use('/api/upload',       uploadRoutes);
+app.use('/api/auth',           authRoutes);
+app.use('/api/rooms',          roomRoutes);
+app.use('/api/reservations',   reservationRoutes);
+app.use('/api/reports/export', reportExportRoutes);
+app.use('/api/reports',        reportRoutes);
+app.use('/api/users',          usersRoutes);
+app.use('/api/customers',      customersRoutes);
+app.use('/api/upload',         uploadRoutes);
 
 // ─── Enterprise Routes ────────────────────────────────────────────────────────
-app.use('/api/calendar',     calendarRoutes);
-app.use('/api/pricing',      pricingRoutes);
-app.use('/api/reviews',      reviewsRoutes);
-app.use('/api/export',       exportRoutes);
-app.use('/api/public',       publicRoutes);
-app.use('/api/frontdesk',    frontdeskRoutes);
+app.use('/api/calendar',       calendarRoutes);
+app.use('/api/pricing',        pricingRoutes);
+app.use('/api/reviews',        reviewsRoutes);
+app.use('/api/public',         publicRoutes);
+app.use('/api/frontdesk',      frontdeskRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

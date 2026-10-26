@@ -4338,7 +4338,8 @@ label,
   .report-filters-bar,
   .tabs-nav-bar,
   .definitions-drawer,
-  .pagination-ui {
+  .pagination-ui,
+  .export-menu-container {
     display: none !important;
   }
 

@@ -48,6 +48,7 @@ import {
   EmptyState,
   ErrorState,
   ReservationDetailPanel,
+  ExportMenu,
 } from '../../components/UI';
 import ReportFilters from './reports/ReportFilters';
 
@@ -256,9 +257,16 @@ export default function AdminDashboard() {
         title="Hotel Overview"
         subtitle="Real-time performance indicators, revenue streams, and frontdesk operations"
         action={
-          <Button variant="outline" size="sm" onClick={fetchDashboardData} disabled={loading}>
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
-          </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <ExportMenu
+              report="overview"
+              filters={{ from, to, compare, room_type, source }}
+              buttonText="Export Overview"
+            />
+            <Button variant="outline" size="sm" onClick={fetchDashboardData} disabled={loading}>
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
+            </Button>
+          </div>
         }
       />
 

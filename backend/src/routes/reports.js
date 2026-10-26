@@ -10,11 +10,15 @@ const { verifyToken, requireRole } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const asyncHandler = require('../middleware/asyncHandler');
 const reportsService = require('../services/reports');
+const reportExportRoutes = require('./reportExport');
 
 const router = express.Router();
 
 // All routes require admin role
 router.use(verifyToken, requireRole('admin'));
+
+// Mount export router
+router.use('/export', reportExportRoutes);
 
 // ─── VALIDATION SCHEMAS ──────────────────────────────────────────────────────
 

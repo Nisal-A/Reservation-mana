@@ -51,6 +51,7 @@ import {
   ErrorState,
   Pagination,
   ReservationDetailPanel,
+  ExportMenu,
 } from '../../components/UI';
 import ReportFilters from './reports/ReportFilters';
 
@@ -285,6 +286,32 @@ export default function Reports() {
         subtitle="Performance analytics, guest trends, revenue auditing, and frontdesk operations"
         action={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <ExportMenu
+              report={
+                activeTab === 'revenue'
+                  ? 'revenue'
+                  : activeTab === 'reservations'
+                  ? 'reservations'
+                  : activeTab === 'occupancy'
+                  ? 'occupancy'
+                  : activeTab === 'customers'
+                  ? 'customers'
+                  : 'operations'
+              }
+              filters={{
+                from,
+                to,
+                compare,
+                room_type,
+                source,
+                status: activeTab === 'reservations' ? resStatusFilter : undefined,
+                payment_status: activeTab === 'reservations' ? resPaymentFilter : undefined,
+                q: activeTab === 'reservations' ? resSearch : undefined,
+                sort: activeTab === 'reservations' ? resSort : undefined,
+                sort_dir: activeTab === 'reservations' ? resSortDir : undefined,
+              }}
+              buttonText={`Export ${TABS.find((t) => t.id === activeTab)?.label || 'Report'}`}
+            />
             <Button variant="outline" size="sm" onClick={() => setShowDefinitionsDrawer(true)}>
               <HelpCircle size={15} /> Definitions
             </Button>
@@ -644,6 +671,23 @@ export default function Reports() {
                       <option value="unpaid">Unpaid</option>
                       <option value="refunded">Refunded</option>
                     </select>
+
+                    <ExportMenu
+                      report="reservations"
+                      filters={{
+                        from,
+                        to,
+                        source,
+                        room_type,
+                        status: resStatusFilter,
+                        payment_status: resPaymentFilter,
+                        q: resSearch,
+                        sort: resSort,
+                        sort_dir: resSortDir,
+                      }}
+                      buttonText="Export"
+                      size="sm"
+                    />
                   </div>
                 </div>
 
@@ -852,12 +896,20 @@ export default function Reports() {
 
               {/* DataTable: Room Performance & Underperforming flag */}
               <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ fontWeight: 600, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Building size={16} style={{ color: GOLD }} /> Room Inventory Performance
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
-                    Hotel Avg Occupancy: <strong>{roomPerfData?.data?.hotel_average_occupancy_pct || 0}%</strong> (Underperforming threshold: &lt; {roomPerfData?.data?.underperforming_threshold_pct || 0}%)
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
+                      Hotel Avg Occupancy: <strong>{roomPerfData?.data?.hotel_average_occupancy_pct || 0}%</strong>
+                    </div>
+                    <ExportMenu
+                      report="rooms"
+                      filters={{ from, to, room_type, source }}
+                      buttonText="Export Rooms"
+                      size="sm"
+                    />
                   </div>
                 </div>
 
@@ -986,8 +1038,16 @@ export default function Reports() {
 
               {/* DataTable: Top Customers Drilldown */}
               <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Users size={16} style={{ color: GOLD }} /> Guest Drill-Down (Top Guests by Spend)
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 600, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Users size={16} style={{ color: GOLD }} /> Guest Drill-Down (Top Guests by Spend)
+                  </div>
+                  <ExportMenu
+                    report="customers"
+                    filters={{ from, to, room_type, source }}
+                    buttonText="Export Guests"
+                    size="sm"
+                  />
                 </div>
                 <div style={{ overflowX: 'auto' }}>
                   <table className="data-table-ui" style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -1068,8 +1128,16 @@ export default function Reports() {
 
               {/* Unpaid Bills Table */}
               <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <CreditCard size={16} style={{ color: DANGER }} /> Unpaid Guest Folios with Outstanding Balance
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 600, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <CreditCard size={16} style={{ color: DANGER }} /> Unpaid Guest Folios with Outstanding Balance
+                  </div>
+                  <ExportMenu
+                    report="operations"
+                    filters={{ room_type, source }}
+                    buttonText="Export Folios"
+                    size="sm"
+                  />
                 </div>
                 <div style={{ overflowX: 'auto' }}>
                   <table className="data-table-ui" style={{ width: '100%', borderCollapse: 'collapse' }}>

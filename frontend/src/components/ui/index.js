@@ -24,6 +24,7 @@ export { PageHeader } from './PageHeader';
 export { StatCard } from './StatCard';
 export { DateRangePicker } from './DateRangePicker';
 export { RatingStars } from './RatingStars';
+export { ExportMenu } from './ExportMenu';
 
 // Loading spinner / helper
 export function PageLoader() {
