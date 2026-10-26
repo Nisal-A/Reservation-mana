@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { BedDouble } from 'lucide-react';
 import { formatLKR } from '../../../utils/format';
+import { getRoomFallbackPhoto } from '../../../config/photos';
 
 export default function RoomCard({ room, checkIn = '', checkOut = '', guests = '', onCheckDates }) {
   const navigate = useNavigate();
@@ -26,6 +26,7 @@ export default function RoomCard({ room, checkIn = '', checkOut = '', guests = '
   const displayView = view_label || 'Courtyard View';
   const displaySize = size_sqm ? `${size_sqm} m²` : '28 m²';
   const imgUrl = image || (images && images.length > 0 ? images[0] : null);
+  const fallbackPhoto = getRoomFallbackPhoto(room_type || room_id);
 
   const hasDates = Boolean(checkIn && checkOut && nights && total != null);
 
@@ -69,10 +70,15 @@ export default function RoomCard({ room, checkIn = '', checkOut = '', guests = '
             className="room-card-image"
           />
         ) : (
-          <div className="room-card-placeholder">
-            <BedDouble size={36} style={{ color: 'var(--gold)', opacity: 0.7, marginBottom: 8 }} />
-            <span className="room-placeholder-type font-serif">{room_type}</span>
-          </div>
+          <picture className="room-card-picture">
+            <source srcSet={fallbackPhoto.cardWebp} type="image/webp" />
+            <img
+              src={fallbackPhoto.cardJpg}
+              alt={fallbackPhoto.alt || `${room_type} Room at LuxeStay`}
+              loading="lazy"
+              className="room-card-image"
+            />
+          </picture>
         )}
         <div className="room-card-bottom-gradient" />
       </div>

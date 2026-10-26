@@ -4,6 +4,7 @@ import { Check, Calendar, Users, BedDouble, AlertCircle, HelpCircle, ArrowLeft, 
 import api from '../../../api/axios';
 import { formatLKR, formatDate, nightsBetween } from '../../../utils/format';
 import { GoldDivider, Eyebrow, StatusText, Skeleton } from '../../../components/UI';
+import { heroPhotos } from '../../../config/photos';
 
 export default function BookingConfirmation() {
   const { ref } = useParams();
@@ -112,23 +113,35 @@ export default function BookingConfirmation() {
   return (
     <div className="public-section confirmation-page">
       <div className="public-container" style={{ maxWidth: 720 }}>
-        {/* Header Block: Gold check in a circle, eyebrow 'BOOKING RECEIVED', Playfair title, divider */}
-        <div className="confirmation-header">
-          <div className="confirmation-check-circle">
-            <Check size={32} className="confirmation-check-icon" />
+        {/* Header Block: Gold check in a circle, eyebrow 'BOOKING RECEIVED', Playfair title, divider, photo banner */}
+        <div className="confirmation-header confirmation-banner-header">
+          <picture className="confirmation-banner-pic">
+            <source srcSet={heroPhotos[1].webp} type="image/webp" />
+            <img
+              src={heroPhotos[1].jpg}
+              alt={heroPhotos[1].alt}
+              className="confirmation-banner-img"
+              loading="eager"
+            />
+          </picture>
+          <div className="confirmation-banner-overlay" />
+          <div className="confirmation-banner-content">
+            <div className="confirmation-check-circle">
+              <Check size={32} className="confirmation-check-icon" />
+            </div>
+
+            <Eyebrow text="BOOKING RECEIVED" />
+
+            <h1 className="confirmation-title font-serif">
+              Thank You for Your Reservation
+            </h1>
+
+            <p className="confirmation-subtitle">
+              We are preparing to welcome you to an unforgettable luxury experience.
+            </p>
+
+            <GoldDivider />
           </div>
-
-          <Eyebrow text="BOOKING RECEIVED" />
-
-          <h1 className="confirmation-title font-serif">
-            Thank You for Your Reservation
-          </h1>
-
-          <p className="confirmation-subtitle">
-            We are preparing to welcome you to an unforgettable luxury experience.
-          </p>
-
-          <GoldDivider />
         </div>
 
         {/* Detail Card */}

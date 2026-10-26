@@ -53,18 +53,33 @@ export default function HeroSlider({ children }) {
       {/* Background Slides */}
       {hasSlides ? (
         <div className="hero-slides-track">
-          {slides.map((slide, idx) => (
-            <div
-              key={idx}
-              className={`hero-slide-item ${idx === currentIndex ? 'is-active' : ''}`}
-              style={{
-                backgroundImage: `url(${slide})`,
-                transition: reducedMotion ? 'none' : 'opacity 1s ease-in-out',
-              }}
-              role="img"
-              aria-label={`Hero background slide ${idx + 1}`}
-            />
-          ))}
+          {slides.map((slide, idx) => {
+            const webp = typeof slide === 'string' ? slide : slide.webp;
+            const jpg = typeof slide === 'string' ? slide : slide.jpg;
+            const alt = typeof slide === 'object' && slide.alt ? slide.alt : `Hero slide ${idx + 1}`;
+            const isFirst = idx === 0;
+
+            return (
+              <div
+                key={idx}
+                className={`hero-slide-item ${idx === currentIndex ? 'is-active' : ''}`}
+                style={{
+                  transition: reducedMotion ? 'none' : 'opacity 1s ease-in-out',
+                }}
+              >
+                <picture className="hero-slide-picture">
+                  {webp && <source srcSet={webp} type="image/webp" />}
+                  <img
+                    src={jpg}
+                    alt={alt}
+                    loading={isFirst ? 'eager' : 'lazy'}
+                    fetchPriority={isFirst ? 'high' : 'auto'}
+                    className="hero-slide-img"
+                  />
+                </picture>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="hero-fallback-bg" />

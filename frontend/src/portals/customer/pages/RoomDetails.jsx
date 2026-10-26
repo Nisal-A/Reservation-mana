@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
-  BedDouble,
   Calendar,
   Users,
   Check,
@@ -13,6 +12,7 @@ import api from '../../../api/axios';
 import { useAuth } from '../../../context/AuthContext';
 import { formatLKR, formatDate, todayISO } from '../../../utils/format';
 import { GoldDivider, RatingStars, Skeleton } from '../../../components/UI';
+import { getRoomFallbackPhoto } from '../../../config/photos';
 
 export default function RoomDetails() {
   const { id } = useParams();
@@ -236,8 +236,10 @@ export default function RoomDetails() {
     );
   }
 
-  const images = room.images || [];
-  const currentImg = images[activeImgIndex] || null;
+  const fallbackPhoto = getRoomFallbackPhoto(room.room_type || room.room_id || id);
+  const hasCustomImages = Array.isArray(room.images) && room.images.length > 0;
+  const images = hasCustomImages ? room.images : [fallbackPhoto.jpg];
+  const currentImg = images[activeImgIndex] || fallbackPhoto.jpg;
   const amenities = room.amenities || [];
   const reviews = room.reviews || [];
 
@@ -245,17 +247,21 @@ export default function RoomDetails() {
     <div className="room-details-page">
       {/* Hero Image Section: 288px mobile, 384px desktop */}
       <section className="room-details-hero-section" aria-label="Suite Visual Gallery">
-        {currentImg ? (
+        {hasCustomImages ? (
           <img
             src={currentImg}
             alt={`${room.room_type} Suite Photo ${activeImgIndex + 1}`}
             className="room-details-hero-img"
           />
         ) : (
-          <div className="room-details-hero-placeholder">
-            <BedDouble size={56} style={{ color: 'var(--gold)', opacity: 0.5, marginBottom: 12 }} />
-            <span className="font-serif room-hero-placeholder-type">{room.room_type}</span>
-          </div>
+          <picture className="room-details-hero-pic">
+            <source srcSet={fallbackPhoto.webp} type="image/webp" />
+            <img
+              src={fallbackPhoto.jpg}
+              alt={fallbackPhoto.alt || `${room.room_type} Suite at LuxeStay`}
+              className="room-details-hero-img"
+            />
+          </picture>
         )}
 
         <div className="room-details-hero-overlay" />

@@ -10,7 +10,6 @@ import {
   BedDouble,
   X,
   Upload,
-  Image as ImageIcon,
   AlertTriangle,
   MoveLeft,
   MoveRight,
@@ -20,6 +19,7 @@ import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { assetUrl } from '../../config/env';
 import { formatLKR } from '../../utils/format';
+import { getRoomFallbackPhoto } from '../../config/photos';
 import {
   Button,
   StatusText,
@@ -525,6 +525,7 @@ export default function RoomManagement() {
               <tbody>
                 {rooms.map((r) => {
                   const coverImage = r.images && r.images.length > 0 ? r.images[0] : null;
+                  const fallbackPhoto = getRoomFallbackPhoto(r.room_type || r.room_id || r.room_number);
                   return (
                     <tr key={r.room_id}>
                       {/* Photo Thumbnail */}
@@ -549,7 +550,12 @@ export default function RoomManagement() {
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             />
                           ) : (
-                            <ImageIcon size={18} style={{ color: 'var(--muted)' }} />
+                            <img
+                              src={fallbackPhoto.cardJpg || fallbackPhoto.jpg}
+                              alt={fallbackPhoto.alt || `Room ${r.room_number}`}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              loading="lazy"
+                            />
                           )}
                         </div>
                       </td>

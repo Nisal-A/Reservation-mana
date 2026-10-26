@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Phone, Mail, ArrowRight, RefreshCw, Sparkles } from 'lucide-react';
 import api from '../../../api/axios';
 import { siteContent } from '../../../config/siteContent';
+import { aboutPhoto } from '../../../config/photos';
 import HeroSlider from '../components/HeroSlider';
 import SearchBar from '../components/SearchBar';
 import RoomCard from '../components/RoomCard';
@@ -130,22 +131,33 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4: About Section (Only when siteContent.about is set) */}
-      {siteContent.about && (
-        <section className="public-section about-section" aria-label="About LuxeStay">
-          <div className="public-container">
-            <div className="about-card-ui">
-              <SectionTitle
-                eyebrow="Our Story"
-                title={`Welcome to ${siteContent.hotelName}`}
-              />
+      {/* 4: About Section */}
+      <section className="public-section about-section" aria-label="About LuxeStay">
+        <div className="public-container">
+          <div className="about-card-ui">
+            <div className="about-grid">
               <div className="about-text-content">
-                <p>{siteContent.about}</p>
+                <SectionTitle
+                  eyebrow="Our Story"
+                  title={`Welcome to ${siteContent.hotelName || 'LuxeStay'}`}
+                  subtitle={siteContent.about || siteContent.tagline}
+                />
+              </div>
+              <div className="about-image-wrapper">
+                <picture className="about-picture">
+                  <source srcSet={aboutPhoto.cardWebp} type="image/webp" />
+                  <img
+                    src={aboutPhoto.cardJpg}
+                    alt={aboutPhoto.alt}
+                    loading="lazy"
+                    className="about-image"
+                  />
+                </picture>
               </div>
             </div>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       {/* 5: Services & Amenities */}
       <ServicesList />

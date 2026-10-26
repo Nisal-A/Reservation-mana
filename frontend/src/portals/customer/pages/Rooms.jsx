@@ -5,6 +5,7 @@ import api from '../../../api/axios';
 import RoomCard from '../components/RoomCard';
 import { SectionTitle, Skeleton, GoldDivider, Pagination, ErrorState } from '../../../components/UI';
 import { todayISO } from '../../../utils/format';
+import { heroPhotos } from '../../../config/photos';
 
 export default function Rooms() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -137,9 +138,20 @@ export default function Rooms() {
 
   return (
     <div className="public-rooms-page">
-      <div className="public-container">
-        {/* Section Title with Eyebrow and Gold Divider */}
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+      {/* Page Banner Behind 'Rooms' Title */}
+      <div className="rooms-title-banner">
+        <picture className="rooms-banner-pic">
+          <source srcSet={heroPhotos[0].webp} type="image/webp" />
+          <img
+            src={heroPhotos[0].jpg}
+            alt={heroPhotos[0].alt}
+            className="rooms-banner-img"
+            loading="eager"
+            fetchPriority="high"
+          />
+        </picture>
+        <div className="rooms-banner-overlay" />
+        <div className="rooms-banner-content public-container">
           <SectionTitle
             eyebrow="Our rooms"
             title="Rooms & Suites"
@@ -147,7 +159,9 @@ export default function Rooms() {
           />
           <GoldDivider />
         </div>
+      </div>
 
+      <div className="public-container">
         {/* Filter Bar built from Input styles */}
         <div className="rooms-filter-panel card-ui" style={{ padding: '24px 20px', marginBottom: 32 }}>
           <div className="rooms-filter-grid">

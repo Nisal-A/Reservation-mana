@@ -11,7 +11,18 @@ export const siteContent = {
   email: '',
   mapEmbedUrl: 'none',
   logo: 'text logo',
-  heroSlides: [],
+  heroSlides: [
+    {
+      webp: '/site/hero-1-1920.webp',
+      jpg: '/site/hero-1-1920.jpg',
+      alt: 'LuxeStay luxury rooftop swimming pool and lounge at dusk with illuminated palm trees',
+    },
+    {
+      webp: '/site/hero-2-1920.webp',
+      jpg: '/site/hero-2-1920.jpg',
+      alt: 'Couple enjoying sunset infinity pool overlooking the ocean framed by palm trees',
+    },
+  ],
   heroHeadline: '',
   heroSubtitle: '',
   about: '',

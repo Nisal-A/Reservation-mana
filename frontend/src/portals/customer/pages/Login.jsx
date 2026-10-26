@@ -4,6 +4,7 @@ import { User, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../../context/AuthContext';
 import { siteContent } from '../../../config/siteContent';
+import { heroPhotos } from '../../../config/photos';
 import { getSafeNext } from '../../../utils/navigation';
 
 export default function Login() {
@@ -61,7 +62,8 @@ export default function Login() {
 
   return (
     <div className="auth-page-container">
-      <div className="auth-card card-ui">
+      <div className="auth-split-wrapper">
+        <div className="auth-card card-ui">
         {/* Brand / Logo */}
         <div className="auth-brand-block">
           <div className="sidebar-logo-monogram auth-monogram">
@@ -167,6 +169,28 @@ export default function Login() {
           >
             Create an account
           </Link>
+        </div>
+        </div>
+
+        {/* Side Image Pane (1024px and wider) */}
+        <div className="auth-side-image-pane" aria-hidden="true">
+          <picture className="auth-side-pic">
+            <source srcSet={heroPhotos[0].webp} type="image/webp" />
+            <img
+              src={heroPhotos[0].jpg}
+              alt={heroPhotos[0].alt}
+              className="auth-side-img"
+              loading="lazy"
+            />
+          </picture>
+          <div className="auth-side-overlay">
+            <div className="auth-side-text">
+              <span className="auth-side-eyebrow">THE LUXESTAY EXPERIENCE</span>
+              <p className="font-serif auth-side-quote">
+                Where refined coastal luxury meets timeless serenity.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

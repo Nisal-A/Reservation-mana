@@ -4396,3 +4396,235 @@ label,
   visibility: visible;
   opacity: 1;
 }
+
+/* ============================================================
+   HOTEL PHOTOGRAPHY SYSTEM & LAYOUT INTEGRATION
+   ============================================================ */
+
+/* 1. Hero Slider Picture and Image */
+.hero-slide-picture,
+.hero-slide-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+/* 2. About Section Grid and Photo */
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .about-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.about-image-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--input);
+}
+
+.about-picture,
+.about-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+/* 3. Rooms Page Banner */
+.rooms-title-banner {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 32px;
+}
+
+.rooms-banner-pic,
+.rooms-banner-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.rooms-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 11, 11, 0.72);
+  z-index: 1;
+}
+
+.rooms-banner-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 48px 16px 36px;
+}
+
+/* 4. Room Card Fallback Picture */
+.room-card-picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 5. Room Details Hero Picture */
+.room-details-hero-pic {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 6. Reviews and Contact Backgrounds */
+.reviews-section {
+  position: relative;
+  background-image: linear-gradient(rgba(11, 11, 11, 0.85), rgba(11, 11, 11, 0.90)), url('/site/hero-2-1920.webp');
+  background-size: cover;
+  background-position: center;
+}
+
+.contact-section {
+  position: relative;
+  background-image: linear-gradient(rgba(11, 11, 11, 0.86), rgba(11, 11, 11, 0.92)), url('/site/hero-1-1920.webp');
+  background-size: cover;
+  background-position: center;
+}
+
+/* 7. Auth Page Split Layout (screens >= 1024px) */
+.auth-split-wrapper {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+  max-width: 448px;
+  margin: 0 auto;
+}
+
+.auth-side-image-pane {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .auth-split-wrapper {
+    max-width: 960px;
+    display: grid;
+    grid-template-columns: 460px 1fr;
+    background: var(--card);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+  }
+
+  .auth-split-wrapper .auth-card {
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    max-width: 100%;
+  }
+
+  .auth-side-image-pane {
+    display: block;
+    position: relative;
+    width: 100%;
+    min-height: 100%;
+    overflow: hidden;
+  }
+
+  .auth-side-pic,
+  .auth-side-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+
+  .auth-side-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(11, 11, 11, 0.4) 0%, rgba(11, 11, 11, 0.85) 100%);
+    display: flex;
+    align-items: flex-end;
+    padding: 40px;
+  }
+
+  .auth-side-text {
+    color: var(--text);
+  }
+
+  .auth-side-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--gold);
+    display: block;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .auth-side-quote {
+    font-size: 1.35rem;
+    line-height: 1.4;
+    color: var(--text);
+    margin: 0;
+  }
+}
+
+/* 8. Booking Confirmation Header Banner */
+.confirmation-banner-header {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 32px;
+  border: 1px solid var(--border);
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirmation-banner-pic,
+.confirmation-banner-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.confirmation-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 11, 11, 0.78);
+  z-index: 1;
+}
+
+.confirmation-banner-content {
+  position: relative;
+  z-index: 2;
+  padding: 40px 20px 32px;
+  text-align: center;
+  width: 100%;
+}
+
