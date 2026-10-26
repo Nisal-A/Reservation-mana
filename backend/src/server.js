@@ -33,6 +33,7 @@ app.use(cors({
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
+  exposedHeaders: ['X-Total-Count'],
 }));
 
 // Body parsers
