@@ -156,15 +156,6 @@ function AppRoutes() {
         <Route path="checkout" element={<Navigate to="/reception/check-out" replace />} />
       </Route>
 
-      {/* Legacy customer routes redirect to new customer portal */}
-      <Route path="/customer" element={<Navigate to="/" replace />} />
-      <Route path="/customer/rooms" element={<Navigate to="/rooms" replace />} />
-      <Route path="/customer/book" element={<Navigate to="/rooms" replace />} />
-      <Route path="/customer/bookings" element={<Navigate to="/account/bookings" replace />} />
-      <Route path="/customer/profile" element={<Navigate to="/account/profile" replace />} />
-      <Route path="/customer/reviews" element={<Navigate to="/account/reviews" replace />} />
-      <Route path="/customer/*" element={<Navigate to="/" replace />} />
-
       {/* Global 404 / Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

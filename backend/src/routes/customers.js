@@ -45,9 +45,13 @@ const updateCustomerSchema = z.object({
 
 const customerProfileSchema = z.object({
   body: z.object({
-    name: z.string().trim().min(1).max(100).optional(),
+    name: z.string().trim().min(1, 'Name is required').max(100).optional(),
     phone: z.string().trim().regex(phoneRegex, 'Invalid phone number format').optional().nullable(),
+    current_password: z.string().optional(),
     password: z.string().regex(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/, 'Password must be at least 8 characters long and contain both letters and numbers').optional(),
+  }).refine((data) => !data.password || Boolean(data.current_password && data.current_password.trim().length > 0), {
+    message: 'Current password is required to change password.',
+    path: ['current_password'],
   }),
 });
 
@@ -65,12 +69,12 @@ router.get(
     let customer = null;
 
     if (req.user.customer_id) {
-      const [rows] = await pool.query('SELECT * FROM customers WHERE customer_id = ?', [req.user.customer_id]);
+      const [rows] = await pool.query('SELECT customer_id, user_id, name, email, phone, created_at FROM customers WHERE customer_id = ?', [req.user.customer_id]);
       if (rows.length > 0) customer = rows[0];
     }
 
     if (!customer && req.user.user_id) {
-      const [rows] = await pool.query('SELECT * FROM customers WHERE user_id = ?', [req.user.user_id]);
+      const [rows] = await pool.query('SELECT customer_id, user_id, name, email, phone, created_at FROM customers WHERE user_id = ?', [req.user.user_id]);
       if (rows.length > 0) customer = rows[0];
     }
 
@@ -89,7 +93,7 @@ router.put(
   requireRole('customer'),
   validate(customerProfileSchema),
   asyncHandler(async (req, res) => {
-    const { name, phone, password } = req.body;
+    const { name, phone, password, current_password } = req.body;
 
     const [rows] = await pool.query('SELECT * FROM customers WHERE user_id = ?', [req.user.user_id]);
     if (rows.length === 0) {
@@ -98,17 +102,48 @@ router.put(
 
     const current = rows[0];
 
+    // Password change validation
+    if (password) {
+      if (!current_password) {
+        return res.status(400).json({
+          message: 'Current password is required to change password.',
+          errors: [{ field: 'current_password', message: 'Current password is required' }],
+        });
+      }
+
+      const [userRows] = await pool.query('SELECT password FROM users WHERE user_id = ?', [req.user.user_id]);
+      if (userRows.length === 0) {
+        return res.status(404).json({ message: 'User account not found.', errors: [] });
+      }
+
+      const isMatch = await bcrypt.compare(current_password, userRows[0].password);
+      if (!isMatch) {
+        return res.status(400).json({
+          message: 'Current password does not match.',
+          errors: [{ field: 'current_password', message: 'Current password does not match' }],
+        });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 12);
+      await pool.query('UPDATE users SET password = ? WHERE user_id = ?', [hashedPassword, req.user.user_id]);
+    }
+
+    // Update customer personal details
     await pool.query(
       'UPDATE customers SET name = ?, phone = ? WHERE user_id = ?',
       [name || current.name, phone !== undefined ? phone : current.phone, req.user.user_id]
     );
 
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 12);
-      await pool.query('UPDATE users SET password = ? WHERE user_id = ?', [hashedPassword, req.user.user_id]);
-    }
+    // Fetch fresh customer details without any password hashes
+    const [updatedRows] = await pool.query(
+      'SELECT customer_id, user_id, name, email, phone, created_at FROM customers WHERE user_id = ?',
+      [req.user.user_id]
+    );
 
-    res.json({ message: 'Profile updated successfully.' });
+    res.json({
+      message: 'Profile updated successfully.',
+      customer: updatedRows[0],
+    });
   })
 );
 

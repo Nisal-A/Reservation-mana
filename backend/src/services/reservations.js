@@ -730,6 +730,30 @@ async function listStaffReservations({
 }
 
 /**
+ * Compute whether a reservation can be cancelled and its deadline.
+ * Follows the exact same rule as the cancel endpoint:
+ * - Must be pending or confirmed
+ * - Must be prior to CANCEL_WINDOW_HOURS before check-in date 00:00 in hotel timezone
+ */
+function computeCancellationPolicy(reservation) {
+  if (!['pending', 'confirmed'].includes(reservation.status)) {
+    return {
+      can_cancel: false,
+      cancel_deadline: null,
+    };
+  }
+
+  const checkInMidnight = getHotelTimestamp(reservation.check_in_date, '00:00:00', env.HOTEL_TIMEZONE);
+  const deadline = new Date(checkInMidnight.getTime() - CANCEL_WINDOW_HOURS * 3600 * 1000);
+  const can_cancel = new Date() < deadline;
+
+  return {
+    can_cancel,
+    cancel_deadline: deadline.toISOString(),
+  };
+}
+
+/**
  * List own reservations for a customer.
  */
 async function listCustomerReservations(customerId) {
@@ -741,7 +765,13 @@ async function listCustomerReservations(customerId) {
       c.phone AS customer_phone,
       rm.room_number,
       rm.room_type,
-      rm.price AS room_price
+      rm.price AS room_price,
+      rm.capacity AS room_capacity,
+      rm.bed_type AS room_bed_type,
+      rm.size_sqm AS room_size_sqm,
+      rm.view_label AS room_view_label,
+      rm.images AS room_images,
+      rm.image_url AS room_image_url
     FROM reservations r
     JOIN customers c ON r.customer_id = c.customer_id
     JOIN rooms rm ON r.room_id = rm.room_id
@@ -749,7 +779,10 @@ async function listCustomerReservations(customerId) {
     ORDER BY r.created_at DESC
   `;
   const [rows] = await pool.query(query, [customerId]);
-  return rows;
+  return rows.map((r) => ({
+    ...r,
+    ...computeCancellationPolicy(r),
+  }));
 }
 
 /**
@@ -765,14 +798,25 @@ async function getCustomerReservation(bookingRef, customerId) {
       c.phone AS customer_phone,
       rm.room_number,
       rm.room_type,
-      rm.price AS room_price
+      rm.price AS room_price,
+      rm.capacity AS room_capacity,
+      rm.bed_type AS room_bed_type,
+      rm.size_sqm AS room_size_sqm,
+      rm.view_label AS room_view_label,
+      rm.images AS room_images,
+      rm.image_url AS room_image_url
     FROM reservations r
     JOIN customers c ON r.customer_id = c.customer_id
     JOIN rooms rm ON r.room_id = rm.room_id
     WHERE r.booking_ref = ? AND r.customer_id = ?
   `;
   const [rows] = await pool.query(query, [bookingRef, customerId]);
-  return rows[0] || null;
+  if (rows.length === 0) return null;
+  const res = rows[0];
+  return {
+    ...res,
+    ...computeCancellationPolicy(res),
+  };
 }
 
 module.exports = {

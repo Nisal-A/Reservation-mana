@@ -13,7 +13,6 @@ import {
   LogIn,
   LogOut,
   Home,
-  BookOpen,
   History,
   User,
   X,
@@ -41,12 +40,11 @@ const receptionNav = [
 ];
 
 const customerNav = [
-  { to: '/customer',          icon: Home,      label: 'Home' },
-  { to: '/customer/rooms',    icon: BedDouble, label: 'Browse Rooms' },
-  { to: '/customer/book',     icon: BookOpen,  label: 'Book a Room' },
-  { to: '/customer/bookings', icon: History,   label: 'My Bookings' },
-  { to: '/customer/reviews',  icon: Star,      label: 'My Reviews' },
-  { to: '/customer/profile',  icon: User,      label: 'My Profile' },
+  { to: '/',                 icon: Home,      label: 'Home' },
+  { to: '/rooms',            icon: BedDouble, label: 'Rooms' },
+  { to: '/account/bookings', icon: History,   label: 'My Bookings' },
+  { to: '/account/reviews',  icon: Star,      label: 'My Reviews' },
+  { to: '/account/profile',  icon: User,      label: 'My Profile' },
 ];
 
 const navByRole = {
@@ -98,7 +96,7 @@ export default function Sidebar({ isOpen = false, onClose }) {
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === '/admin' || item.to === '/reception' || item.to === '/customer'}
+            end={item.to === '/admin' || item.to === '/reception' || item.to === '/'}
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={onClose}
           >

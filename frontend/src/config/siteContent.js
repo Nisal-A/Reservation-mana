@@ -7,7 +7,7 @@ export const siteContent = {
   hotelName: 'LuxeStay',
   tagline: '',
   address: '',
-  phone: '',
+  phone: '+94 11 234 5678',
   email: '',
   mapEmbedUrl: 'none',
   logo: 'text logo',

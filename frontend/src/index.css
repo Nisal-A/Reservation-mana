@@ -4086,4 +4086,19 @@ label,
   }
 }
 
+/* Customer Portal: Booking Details Grid */
+.booking-details-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .booking-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
 
