@@ -17,6 +17,7 @@ const analyticsRoutes = require('./routes/analytics');
 const reviewsRoutes = require('./routes/reviews');
 const exportRoutes = require('./routes/export');
 const publicRoutes = require('./routes/public');
+const frontdeskRoutes = require('./routes/frontdesk');
 
 const app = express();
 
@@ -59,6 +60,7 @@ app.use('/api/analytics',    analyticsRoutes);
 app.use('/api/reviews',      reviewsRoutes);
 app.use('/api/export',       exportRoutes);
 app.use('/api/public',       publicRoutes);
+app.use('/api/frontdesk',    frontdeskRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

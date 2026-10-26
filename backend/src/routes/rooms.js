@@ -8,7 +8,8 @@ const { verifyToken, requireRole } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const asyncHandler = require('../middleware/asyncHandler');
 const { logAudit } = require('../utils/audit');
-const { today } = require('../utils/dates');
+const { today, nightsBetween } = require('../utils/dates');
+const { BLOCKING_STATUSES } = require('../services/config/rules');
 
 const router = express.Router();
 
@@ -37,6 +38,9 @@ const roomQuerySchema = z.object({
     status: z.enum(['available', 'occupied', 'maintenance']).optional(),
     min_price: z.coerce.number().min(0).optional(),
     max_price: z.coerce.number().min(0).optional(),
+    check_in: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'check_in must be YYYY-MM-DD').optional(),
+    check_out: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'check_out must be YYYY-MM-DD').optional(),
+    guests: z.coerce.number().int().min(1).optional(),
     page: z.coerce.number().int().min(1).optional(),
     limit: z.coerce.number().int().min(1).max(100).optional(),
   }),
@@ -88,10 +92,62 @@ router.get(
   '/',
   validate(roomQuerySchema),
   asyncHandler(async (req, res) => {
-    const { search, type, status, min_price, max_price, page, limit } = req.query;
+    const { search, type, status, min_price, max_price, check_in, check_out, guests, page, limit } = req.query;
+
+    const isStayQuery = Boolean(check_in && check_out);
+    let stayNights = 0;
+
+    if (check_in && !check_out) {
+      return res.status(400).json({ message: 'check_out date is required when check_in is provided.', errors: [] });
+    }
+    if (!check_in && check_out) {
+      return res.status(400).json({ message: 'check_in date is required when check_out is provided.', errors: [] });
+    }
+
+    if (isStayQuery) {
+      if (check_in >= check_out) {
+        return res.status(400).json({ message: 'check_out must be strictly after check_in.', errors: [] });
+      }
+      stayNights = nightsBetween(check_in, check_out);
+      if (stayNights <= 0) {
+        return res.status(400).json({ message: 'Stay must be at least 1 night.', errors: [] });
+      }
+    }
 
     let query = 'SELECT * FROM rooms WHERE 1=1';
     const params = [];
+
+    if (isStayQuery) {
+      // Rooms bookable for the whole stay must not be under maintenance
+      query += " AND status != 'maintenance'";
+
+      if (guests !== undefined && !isNaN(guests)) {
+        query += ' AND capacity >= ?';
+        params.push(Number(guests));
+      }
+
+      // Must not overlap any active/blocking reservation
+      const placeholders = BLOCKING_STATUSES.map(() => '?').join(', ');
+      query += `
+        AND NOT EXISTS (
+          SELECT 1 FROM reservations res
+          WHERE res.room_id = rooms.room_id
+            AND res.status IN (${placeholders})
+            AND res.check_in_date < ?
+            AND res.check_out_date > ?
+        )
+      `;
+      params.push(...BLOCKING_STATUSES, check_out, check_in);
+    } else {
+      if (status) {
+        query += ' AND status = ?';
+        params.push(status);
+      }
+      if (guests !== undefined && !isNaN(guests)) {
+        query += ' AND capacity >= ?';
+        params.push(Number(guests));
+      }
+    }
 
     if (search) {
       query += ' AND (room_number LIKE ? OR room_type LIKE ? OR description LIKE ?)';
@@ -102,11 +158,6 @@ router.get(
     if (type) {
       query += ' AND room_type = ?';
       params.push(type);
-    }
-
-    if (status) {
-      query += ' AND status = ?';
-      params.push(status);
     }
 
     if (min_price !== undefined) {
@@ -131,13 +182,22 @@ router.get(
 
     const [rows] = await pool.query(query, params);
 
-    const formatted = rows.map((r) => ({
-      ...r,
-      price: Number(Number(r.price).toFixed(2)),
-      capacity: Number(r.capacity),
-      amenities: parseJsonArray(r.amenities),
-      images: parseJsonArray(r.images),
-    }));
+    const formatted = rows.map((r) => {
+      const base = {
+        ...r,
+        price: Number(Number(r.price).toFixed(2)),
+        capacity: Number(r.capacity),
+        amenities: parseJsonArray(r.amenities),
+        images: parseJsonArray(r.images),
+      };
+
+      if (isStayQuery) {
+        base.nights = stayNights;
+        base.total = Number((base.price * stayNights).toFixed(2));
+      }
+
+      return base;
+    });
 
     res.json(formatted);
   })

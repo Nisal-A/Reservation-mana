@@ -201,24 +201,37 @@ router.get(
   asyncHandler(async (req, res) => {
     const { search, page, limit } = req.query;
 
-    let query = 'SELECT c.*, u.username, u.is_active FROM customers c LEFT JOIN users u ON c.user_id = u.user_id WHERE 1=1';
+    let query = `
+      SELECT c.*, u.username, u.is_active,
+             (SELECT COUNT(*) FROM reservations r WHERE r.customer_id = c.customer_id) AS total_reservations
+      FROM customers c
+      LEFT JOIN users u ON c.user_id = u.user_id
+      WHERE 1=1
+    `;
+    let countQuery = 'SELECT COUNT(*) AS total FROM customers c WHERE 1=1';
     const params = [];
+    const countParams = [];
 
     if (search) {
       query += ' AND (c.name LIKE ? OR c.email LIKE ? OR c.phone LIKE ?)';
+      countQuery += ' AND (c.name LIKE ? OR c.email LIKE ? OR c.phone LIKE ?)';
       const wildcard = `%${search}%`;
       params.push(wildcard, wildcard, wildcard);
+      countParams.push(wildcard, wildcard, wildcard);
     }
+
+    const [[{ total }]] = await pool.query(countQuery, countParams);
 
     query += ' ORDER BY c.created_at DESC';
 
     const p = Math.max(1, page || 1);
-    const lim = Math.max(1, limit || 50);
+    const lim = Math.max(1, limit || 20);
     const offset = (p - 1) * lim;
     query += ' LIMIT ? OFFSET ?';
     params.push(lim, offset);
 
     const [rows] = await pool.query(query, params);
+    res.setHeader('X-Total-Count', total);
     res.json(rows);
   })
 );

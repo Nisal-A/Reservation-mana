@@ -31,3 +31,4 @@ export { default as PageHeader } from './ui/PageHeader';
 export { default as StatCard } from './ui/StatCard';
 export { default as DateRangePicker } from './ui/DateRangePicker';
 export { default as RatingStars } from './ui/RatingStars';
+export { default as ReservationDetailPanel } from './ReservationDetailPanel';

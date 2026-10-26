@@ -711,7 +711,12 @@ async function listStaffReservations({
       c.phone AS customer_phone,
       rm.room_number,
       rm.room_type,
-      rm.price AS room_price
+      rm.price AS room_price,
+      COALESCE((
+        SELECT SUM(CASE WHEN p.kind = 'payment' THEN p.amount WHEN p.kind = 'refund' THEN -p.amount ELSE 0 END)
+        FROM payments p
+        WHERE p.reservation_id = r.reservation_id
+      ), 0) AS total_paid
     FROM reservations r
     JOIN customers c ON r.customer_id = c.customer_id
     JOIN rooms rm ON r.room_id = rm.room_id
@@ -721,8 +726,20 @@ async function listStaffReservations({
   `;
   const [data] = await pool.query(dataQuery, [...params, lim, offset]);
 
+  const formattedData = data.map((r) => {
+    const total = Number(Number(r.total_amount).toFixed(2));
+    const paid = Number(Number(r.total_paid || 0).toFixed(2));
+    const balance = Number(Math.max(0, total - paid).toFixed(2));
+    return {
+      ...r,
+      total_amount: total,
+      paid_amount: paid,
+      balance,
+    };
+  });
+
   return {
-    data,
+    data: formattedData,
     page: p,
     limit: lim,
     total: Number(total),
