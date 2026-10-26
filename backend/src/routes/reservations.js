@@ -13,6 +13,9 @@ const { logAudit } = require('../utils/audit');
 
 const router = express.Router();
 
+// All reservation endpoints require authentication
+router.use(verifyToken);
+
 // Helper to ensure customer_id is resolved for customer tokens
 async function getAuthenticatedCustomerId(req) {
   if (req.user.customer_id) return req.user.customer_id;

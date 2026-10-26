@@ -8,6 +8,9 @@ const { createUploader } = require('../middleware/upload');
 const router = express.Router();
 const uploader = createUploader();
 
+// All upload routes require admin authentication
+router.use(verifyToken, requireRole('admin'));
+
 // POST /api/upload — upload room images (admin only)
 router.post(
   '/',

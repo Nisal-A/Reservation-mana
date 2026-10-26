@@ -5,7 +5,7 @@
 const express = require('express');
 const { z } = require('zod');
 const rateLimit = require('express-rate-limit');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
 const pool = require('../config/db');
 const env = require('../config/env');
@@ -882,30 +882,34 @@ function generateCSV({ title, range, query, kpis, headers, tableRows, totalsRow 
 }
 
 // ─── 6. GENERATE XLSX ─────────────────────────────────────────────────────────
-function generateXLSX({ title, range, query, kpis, headers, tableRows, totalsRow, moneyCols, dateCols }) {
-  const wb = XLSX.utils.book_new();
+async function generateXLSX({ title, range, query, kpis, headers, tableRows, totalsRow, moneyCols, dateCols }) {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'LuxeStay Hotel Management';
+  wb.created = new Date();
 
   // 1. Summary Sheet
-  const summaryAoa = [
-    [`${HOTEL_NAME} Hotel`],
-    [title],
-    [range ? `Date Range: ${range.from} to ${range.to} (${range.days} days)` : `Date: ${today()}`],
-    [`Active Filters: ${formatFilterString(query)}`],
-    [`Generated At: ${getColomboTimestamp()}`],
-    [],
-    ['KEY PERFORMANCE INDICATORS', 'VALUE'],
-  ];
+  const summaryWs = wb.addWorksheet('Summary');
+  summaryWs.addRow([`${HOTEL_NAME} Hotel`]);
+  summaryWs.addRow([title]);
+  summaryWs.addRow([range ? `Date Range: ${range.from} to ${range.to} (${range.days} days)` : `Date: ${today()}`]);
+  summaryWs.addRow([`Active Filters: ${formatFilterString(query)}`]);
+  summaryWs.addRow([`Generated At: ${getColomboTimestamp()}`]);
+  summaryWs.addRow([]);
+  summaryWs.addRow(['KEY PERFORMANCE INDICATORS', 'VALUE']);
 
   kpis.forEach(([k, v]) => {
-    summaryAoa.push([k, v]);
+    summaryWs.addRow([k, v]);
   });
-
-  const summaryWs = XLSX.utils.aoa_to_sheet(summaryAoa);
-  summaryWs['!cols'] = [{ wch: 32 }, { wch: 28 }];
-  XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+  summaryWs.getColumn(1).width = 34;
+  summaryWs.getColumn(2).width = 30;
 
   // 2. Data Sheet
-  const dataAoa = [headers];
+  const dataWs = wb.addWorksheet('Data', {
+    views: [{ state: 'frozen', ySplit: 1 }],
+  });
+
+  const headerRow = dataWs.addRow(headers);
+  headerRow.font = { bold: true };
 
   tableRows.forEach((row) => {
     // Sanitize string cells to prevent Excel formula injection
@@ -915,38 +919,30 @@ function generateXLSX({ title, range, query, kpis, headers, tableRows, totalsRow
       }
       return cell;
     });
-    dataAoa.push(sanitized);
+    const addedRow = dataWs.addRow(sanitized);
+
+    // Format money columns as numeric with 2 decimal places
+    moneyCols.forEach((cIdx) => {
+      const cell = addedRow.getCell(cIdx + 1);
+      if (typeof cell.value === 'number') {
+        cell.numFmt = '#,##0.00';
+      }
+    });
   });
 
   if (totalsRow && totalsRow.length > 0) {
-    dataAoa.push(totalsRow);
-  }
-
-  const dataWs = XLSX.utils.aoa_to_sheet(dataAoa);
-
-  // Freeze header row
-  dataWs['!views'] = [{ state: 'frozen', ySplit: 1 }];
-  dataWs['!freeze'] = { xSplit: 0, ySplit: 1 };
-
-  // Set number formats for money and date columns
-  const rangeRef = XLSX.utils.decode_range(dataWs['!ref'] || 'A1:A1');
-  for (let R = 1; R <= rangeRef.e.r; ++R) {
-    for (let C = 0; C <= rangeRef.e.c; ++C) {
-      const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-      const cell = dataWs[cellAddress];
-      if (!cell) continue;
-
-      if (moneyCols.includes(C) && typeof cell.v === 'number') {
-        cell.t = 'n';
-        cell.z = '#,##0.00';
-      } else if (dateCols.includes(C) && typeof cell.v === 'string' && dateRegex.test(cell.v)) {
-        cell.t = 's';
+    const totRow = dataWs.addRow(totalsRow);
+    totRow.font = { bold: true };
+    moneyCols.forEach((cIdx) => {
+      const cell = totRow.getCell(cIdx + 1);
+      if (typeof cell.value === 'number') {
+        cell.numFmt = '#,##0.00';
       }
-    }
+    });
   }
 
   // Sensible column widths
-  dataWs['!cols'] = headers.map((h, colIdx) => {
+  headers.forEach((h, colIdx) => {
     let maxLen = h.length;
     for (let r = 0; r < Math.min(tableRows.length, 100); r++) {
       const val = tableRows[r][colIdx];
@@ -954,12 +950,11 @@ function generateXLSX({ title, range, query, kpis, headers, tableRows, totalsRow
         maxLen = Math.max(maxLen, String(val).length);
       }
     }
-    return { wch: Math.min(Math.max(maxLen + 3, 11), 35) };
+    dataWs.getColumn(colIdx + 1).width = Math.min(Math.max(maxLen + 3, 12), 35);
   });
 
-  XLSX.utils.book_append_sheet(wb, dataWs, 'Data');
-
-  return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const buffer = await wb.xlsx.writeBuffer();
+  return buffer;
 }
 
 // ─── 7. GENERATE PDF ──────────────────────────────────────────────────────────
@@ -1138,7 +1133,7 @@ router.get(
     }
 
     if (format === 'xlsx') {
-      const buffer = generateXLSX({ ...data, query: req.query });
+      const buffer = await generateXLSX({ ...data, query: req.query });
       res.setHeader(
         'Content-Type',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'

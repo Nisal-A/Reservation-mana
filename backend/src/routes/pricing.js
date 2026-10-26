@@ -8,7 +8,8 @@ const { verifyToken, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// Admin only for all pricing management and calculation
+router.use(verifyToken, requireRole('admin'));
 
 const TAX_RATE = 0.10; // 10% tax
 

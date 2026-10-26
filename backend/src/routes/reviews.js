@@ -12,6 +12,9 @@ const asyncHandler = require('../middleware/asyncHandler');
 
 const router = express.Router();
 
+// All reviews endpoints require authentication
+router.use(verifyToken);
+
 // Multer uploader for review images (.jpg, .jpeg, .png, .webp, 5MB, random filenames)
 const reviewUploadDir = path.join(__dirname, '../../public/uploads/reviews');
 const reviewUploader = createUploader(reviewUploadDir);
@@ -84,7 +87,7 @@ router.post(
     );
 
     if (resRows.length === 0 || resRows[0].customer_id !== customerId) {
-      return res.status(403).json({ message: 'You can only review your own reservations.', errors: [] });
+      return res.status(404).json({ message: 'Reservation not found.', errors: [] });
     }
 
     const reservation = resRows[0];
@@ -164,6 +167,27 @@ router.get(
 
     const [rows] = await pool.query(query, params);
     res.json(rows);
+  })
+);
+
+// GET /api/reviews/:id — Review detail with isolation
+router.get(
+  '/:id',
+  verifyToken,
+  validate(idParamSchema),
+  asyncHandler(async (req, res) => {
+    const [rows] = await pool.query('SELECT * FROM reviews WHERE review_id = ?', [req.params.id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Review not found.', errors: [] });
+    }
+    const review = rows[0];
+    if (req.user.role === 'customer') {
+      const customerId = await resolveCustomerId(req.user);
+      if (review.customer_id !== customerId && review.status !== 'approved') {
+        return res.status(404).json({ message: 'Review not found.', errors: [] });
+      }
+    }
+    res.json(review);
   })
 );
 

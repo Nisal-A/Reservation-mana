@@ -1,5 +1,12 @@
+const path = require('path');
+const dotenv = require('dotenv');
 const { z } = require('zod');
-require('dotenv').config();
+
+if (process.env.NODE_ENV === 'test') {
+  dotenv.config({ path: path.resolve(__dirname, '../../.env.test'), override: true });
+} else {
+  dotenv.config();
+}
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(3001),
@@ -27,6 +34,10 @@ if (!parsed.success) {
     console.error(`  - ${err.path.join('.') || 'config'}: ${err.message}`);
   });
   process.exit(1);
+}
+
+if (process.env.NODE_ENV === 'test' && parsed.data.DB_NAME === 'hotel_reservation') {
+  throw new Error('FATAL: Tests must never touch the real database hotel_reservation! Aborting.');
 }
 
 module.exports = parsed.data;

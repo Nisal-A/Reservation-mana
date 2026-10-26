@@ -1,5 +1,9 @@
 const validate = (schema) => (req, res, next) => {
-  const hasSections = schema.shape && (schema.shape.body || schema.shape.query || schema.shape.params);
+  let inner = schema;
+  while (inner && inner._def && inner._def.schema) {
+    inner = inner._def.schema;
+  }
+  const hasSections = inner && inner.shape && (inner.shape.body || inner.shape.query || inner.shape.params);
   const target = hasSections
     ? { body: req.body, query: req.query, params: req.params }
     : req.body;

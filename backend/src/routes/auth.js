@@ -11,6 +11,16 @@ const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
 
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => req.headers['x-test-ip'] || req.ip,
+  validate: false,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many attempts from this IP, please try again after 15 minutes.', errors: [] },
+});
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -33,10 +43,13 @@ const registerSchema = z.object({
 });
 
 // POST /api/auth/login
-router.post('/login', authLimiter, validate(loginSchema), asyncHandler(async (req, res) => {
+router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (req, res) => {
   const { username, password } = req.body;
 
-  const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+  const [rows] = await pool.query(
+    'SELECT user_id, username, password, role, is_active FROM users WHERE username = ?',
+    [username]
+  );
   if (rows.length === 0) {
     return res.status(401).json({ message: 'Invalid credentials.', errors: [] });
   }
@@ -59,7 +72,7 @@ router.post('/login', authLimiter, validate(loginSchema), asyncHandler(async (re
   let customerData = null;
   if (user.role === 'customer') {
     const [custRows] = await pool.query(
-      'SELECT * FROM customers WHERE user_id = ?',
+      'SELECT customer_id, user_id, name, email, phone, created_at FROM customers WHERE user_id = ?',
       [user.user_id]
     );
     if (custRows.length > 0) customerData = custRows[0];

@@ -39,12 +39,18 @@ const verifyToken = async (req, res, next) => {
 };
 
 const requireRole = (...roles) => {
-  return (req, res, next) => {
+  const middleware = (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({ message: 'Access denied. Insufficient permissions.', errors: [] });
     }
     next();
   };
+  middleware.roles = roles;
+  Object.defineProperty(middleware, 'name', {
+    value: `requireRole(${roles.join(',')})`,
+    configurable: true,
+  });
+  return middleware;
 };
 
 module.exports = { verifyToken, requireRole };

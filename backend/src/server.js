@@ -81,9 +81,11 @@ app.use((err, req, res, _next) => {
   });
 });
 
-const PORT = env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`🏨 Hotel Reservation API running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  const PORT = env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`🏨 Hotel Reservation API running on port ${PORT}`);
+  });
+}
 
 module.exports = app;

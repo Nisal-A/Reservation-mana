@@ -180,7 +180,10 @@ router.put(
     const targetUserId = req.params.id;
     const { username, password, role } = req.body;
 
-    const [rows] = await pool.query('SELECT * FROM users WHERE user_id = ?', [targetUserId]);
+    const [rows] = await pool.query(
+      'SELECT user_id, username, password, role, is_active FROM users WHERE user_id = ?',
+      [targetUserId]
+    );
     if (rows.length === 0) {
       return res.status(404).json({ message: 'User not found.', errors: [] });
     }
@@ -251,7 +254,10 @@ router.patch(
     const targetUserId = req.params.id;
     const { is_active } = req.body;
 
-    const [rows] = await pool.query('SELECT * FROM users WHERE user_id = ?', [targetUserId]);
+    const [rows] = await pool.query(
+      'SELECT user_id, username, role, is_active FROM users WHERE user_id = ?',
+      [targetUserId]
+    );
     if (rows.length === 0) {
       return res.status(404).json({ message: 'User not found.', errors: [] });
     }
@@ -304,7 +310,10 @@ router.delete(
   asyncHandler(async (req, res) => {
     const targetUserId = req.params.id;
 
-    const [rows] = await pool.query('SELECT * FROM users WHERE user_id = ?', [targetUserId]);
+    const [rows] = await pool.query(
+      'SELECT user_id, username, role, is_active FROM users WHERE user_id = ?',
+      [targetUserId]
+    );
     if (rows.length === 0) {
       return res.status(404).json({ message: 'User not found.', errors: [] });
     }

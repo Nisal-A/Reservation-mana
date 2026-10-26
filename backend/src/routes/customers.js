@@ -12,6 +12,9 @@ const { logAudit } = require('../utils/audit');
 
 const router = express.Router();
 
+// All customer routes require authentication
+router.use(verifyToken);
+
 const phoneRegex = /^[0-9+() -]{7,20}$/;
 
 // ─── Validation Schemas ────────────────────────────────────────────────────────
@@ -95,7 +98,10 @@ router.put(
   asyncHandler(async (req, res) => {
     const { name, phone, password, current_password } = req.body;
 
-    const [rows] = await pool.query('SELECT * FROM customers WHERE user_id = ?', [req.user.user_id]);
+    const [rows] = await pool.query(
+      'SELECT customer_id, user_id, name, email, phone, created_at FROM customers WHERE user_id = ?',
+      [req.user.user_id]
+    );
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Customer not found.', errors: [] });
     }
@@ -275,7 +281,10 @@ router.put(
     const customerId = req.params.id;
     const { name, email, phone } = req.body;
 
-    const [rows] = await pool.query('SELECT * FROM customers WHERE customer_id = ?', [customerId]);
+    const [rows] = await pool.query(
+      'SELECT customer_id, user_id, name, email, phone, created_at FROM customers WHERE customer_id = ?',
+      [customerId]
+    );
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Customer not found.', errors: [] });
     }
@@ -315,7 +324,10 @@ router.delete(
   asyncHandler(async (req, res) => {
     const customerId = req.params.id;
 
-    const [rows] = await pool.query('SELECT * FROM customers WHERE customer_id = ?', [customerId]);
+    const [rows] = await pool.query(
+      'SELECT customer_id, user_id, name, email, phone, created_at FROM customers WHERE customer_id = ?',
+      [customerId]
+    );
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Customer not found.', errors: [] });
     }
