@@ -24,6 +24,7 @@ const listUsersSchema = z.object({
   query: z.object({
     search: z.string().optional(),
     role: z.enum(['admin', 'reception', 'customer']).optional(),
+    active: z.enum(['true', 'false', '1', '0']).optional(),
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(50),
   }),
@@ -77,20 +78,41 @@ router.get(
   '/',
   validate(listUsersSchema),
   asyncHandler(async (req, res) => {
-    const { search, role, page, limit } = req.query;
+    const { search, role, active, page, limit } = req.query;
 
     let query = 'SELECT user_id, username, role, is_active, last_login_at, created_at FROM users WHERE 1=1';
+    let countQuery = 'SELECT COUNT(*) AS total FROM users WHERE 1=1';
     const params = [];
+    const countParams = [];
+
+    // Filter by role or restrict to staff roles
+    if (role) {
+      query += ' AND role = ?';
+      countQuery += ' AND role = ?';
+      params.push(role);
+      countParams.push(role);
+    } else {
+      query += " AND role IN ('admin', 'reception')";
+      countQuery += " AND role IN ('admin', 'reception')";
+    }
 
     if (search) {
       query += ' AND username LIKE ?';
-      params.push(`%${search}%`);
+      countQuery += ' AND username LIKE ?';
+      const wildcard = `%${search}%`;
+      params.push(wildcard);
+      countParams.push(wildcard);
     }
 
-    if (role) {
-      query += ' AND role = ?';
-      params.push(role);
+    if (active !== undefined) {
+      const activeVal = active === 'true' || active === '1' ? 1 : 0;
+      query += ' AND is_active = ?';
+      countQuery += ' AND is_active = ?';
+      params.push(activeVal);
+      countParams.push(activeVal);
     }
+
+    const [[{ total }]] = await pool.query(countQuery, countParams);
 
     query += ' ORDER BY created_at DESC';
 
@@ -107,6 +129,7 @@ router.get(
       is_active: Boolean(u.is_active),
     }));
 
+    res.setHeader('X-Total-Count', total);
     res.json(formatted);
   })
 );

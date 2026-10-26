@@ -170,6 +170,10 @@ router.get(
       params.push(max_price);
     }
 
+    const countQuery = 'SELECT COUNT(*) AS total FROM rooms WHERE 1=1' + query.slice('SELECT * FROM rooms WHERE 1=1'.length);
+    const [[{ total }]] = await pool.query(countQuery, params);
+    res.setHeader('X-Total-Count', total);
+
     query += ' ORDER BY room_number ASC';
 
     if (limit) {

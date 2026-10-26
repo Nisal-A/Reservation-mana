@@ -132,10 +132,13 @@ router.get(
     const { status, room_id } = req.query;
 
     let query = `
-      SELECT rv.*, c.name AS customer_name, rm.room_number, rm.room_type
+      SELECT rv.*, c.name AS customer_name, rm.room_number, rm.room_type,
+             DATE_FORMAT(r.check_in_date, '%Y-%m-%d') AS check_in_date,
+             DATE_FORMAT(r.check_out_date, '%Y-%m-%d') AS check_out_date
       FROM reviews rv
       JOIN customers c ON rv.customer_id = c.customer_id
       JOIN rooms rm ON rv.room_id = rm.room_id
+      LEFT JOIN reservations r ON rv.reservation_id = r.reservation_id
       WHERE 1=1
     `;
     const params = [];
