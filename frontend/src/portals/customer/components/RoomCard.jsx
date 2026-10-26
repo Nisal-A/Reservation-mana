@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatLKR } from '../../../utils/format';
 import { getRoomFallbackPhoto } from '../../../config/photos';
+import { assetUrl } from '../../../config/env';
 
 export default function RoomCard({ room, checkIn = '', checkOut = '', guests = '', onCheckDates }) {
   const navigate = useNavigate();
+  const [imgFailed, setImgFailed] = useState(false);
 
   const {
     room_id,
@@ -25,8 +28,11 @@ export default function RoomCard({ room, checkIn = '', checkOut = '', guests = '
   const displayCapacity = max_capacity || capacity || 2;
   const displayView = view_label || 'Courtyard View';
   const displaySize = size_sqm ? `${size_sqm} m²` : '28 m²';
-  const imgUrl = image || (images && images.length > 0 ? images[0] : null);
   const fallbackPhoto = getRoomFallbackPhoto(room_type || room_id);
+  const rawImg = image || (images && images.length > 0 ? images[0] : null);
+  const resolvedImg = rawImg && !imgFailed
+    ? (rawImg.startsWith('/uploads/') ? assetUrl(rawImg) : rawImg)
+    : null;
 
   const hasDates = Boolean(checkIn && checkOut && nights && total != null);
 
@@ -62,12 +68,13 @@ export default function RoomCard({ room, checkIn = '', checkOut = '', guests = '
     <article className="room-card-ui" aria-label={`${room_type} Room`}>
       {/* 208px Image with Zoom 1.06 on hover and bottom gradient */}
       <div className="room-card-media">
-        {imgUrl ? (
+        {resolvedImg ? (
           <img
-            src={imgUrl}
+            src={resolvedImg}
             alt={`${room_type} Room at LuxeStay`}
             loading="lazy"
             className="room-card-image"
+            onError={() => setImgFailed(true)}
           />
         ) : (
           <picture className="room-card-picture">

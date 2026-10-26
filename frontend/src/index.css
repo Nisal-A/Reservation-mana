@@ -2285,6 +2285,20 @@ label,
   pointer-events: auto;
 }
 
+.hero-slide-picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-slide-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
 .hero-fallback-bg {
   position: absolute;
   inset: 0;
@@ -2537,6 +2551,12 @@ label,
   transition: transform 700ms ease;
 }
 
+.room-card-picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .room-card-ui:hover .room-card-image {
   transform: scale(1.06);
 }
@@ -2615,11 +2635,52 @@ label,
   padding: 40px;
 }
 
+.about-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .about-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}
+
 .about-text-content {
   font-size: 1rem;
   color: var(--text-body);
   line-height: 1.8;
-  max-width: 800px;
+}
+
+.about-image-wrapper {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border);
+  aspect-ratio: 16 / 10;
+  background: var(--input);
+}
+
+.about-picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.about-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 700ms ease;
+}
+
+.about-image-wrapper:hover .about-image {
+  transform: scale(1.04);
 }
 
 /* Services Grid & Tiles */
@@ -3016,6 +3077,12 @@ label,
   .room-details-hero-section {
     height: 384px;
   }
+}
+
+.room-details-hero-pic {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .room-details-hero-img {

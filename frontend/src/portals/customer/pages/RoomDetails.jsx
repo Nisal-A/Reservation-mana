@@ -12,7 +12,8 @@ import api from '../../../api/axios';
 import { useAuth } from '../../../context/AuthContext';
 import { formatLKR, formatDate, todayISO } from '../../../utils/format';
 import { GoldDivider, RatingStars, Skeleton } from '../../../components/UI';
-import { getRoomFallbackPhoto } from '../../../config/photos';
+import { heroPhotos, getRoomFallbackPhoto } from '../../../config/photos';
+import { assetUrl } from '../../../config/env';
 
 export default function RoomDetails() {
   const { id } = useParams();
@@ -237,9 +238,36 @@ export default function RoomDetails() {
   }
 
   const fallbackPhoto = getRoomFallbackPhoto(room.room_type || room.room_id || id);
+  const altPhoto = heroPhotos.find((p) => p.id !== fallbackPhoto.id) || heroPhotos[1] || heroPhotos[0];
+
+  // Gallery items: if room has custom images, format them; otherwise, provide both prepared hotel photos
   const hasCustomImages = Array.isArray(room.images) && room.images.length > 0;
-  const images = hasCustomImages ? room.images : [fallbackPhoto.jpg];
-  const currentImg = images[activeImgIndex] || fallbackPhoto.jpg;
+  const galleryItems = hasCustomImages
+    ? room.images.map((img, i) => {
+        const fullUrl = img.startsWith('/uploads/') ? assetUrl(img) : img;
+        return {
+          webp: null,
+          jpg: fullUrl,
+          thumb: fullUrl,
+          alt: `${room.room_type} Suite Photo ${i + 1}`,
+        };
+      })
+    : [
+        {
+          webp: fallbackPhoto.webp,
+          jpg: fallbackPhoto.jpg,
+          thumb: fallbackPhoto.cardJpg,
+          alt: fallbackPhoto.alt,
+        },
+        {
+          webp: altPhoto.webp,
+          jpg: altPhoto.jpg,
+          thumb: altPhoto.cardJpg,
+          alt: altPhoto.alt,
+        },
+      ];
+
+  const currentPhoto = galleryItems[activeImgIndex] || galleryItems[0];
   const amenities = room.amenities || [];
   const reviews = room.reviews || [];
 
@@ -247,22 +275,18 @@ export default function RoomDetails() {
     <div className="room-details-page">
       {/* Hero Image Section: 288px mobile, 384px desktop */}
       <section className="room-details-hero-section" aria-label="Suite Visual Gallery">
-        {hasCustomImages ? (
+        <picture className="room-details-hero-pic">
+          {currentPhoto.webp && <source srcSet={currentPhoto.webp} type="image/webp" />}
           <img
-            src={currentImg}
-            alt={`${room.room_type} Suite Photo ${activeImgIndex + 1}`}
+            src={currentPhoto.jpg}
+            alt={currentPhoto.alt || `${room.room_type} Suite at LuxeStay`}
             className="room-details-hero-img"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = fallbackPhoto.jpg;
+            }}
           />
-        ) : (
-          <picture className="room-details-hero-pic">
-            <source srcSet={fallbackPhoto.webp} type="image/webp" />
-            <img
-              src={fallbackPhoto.jpg}
-              alt={fallbackPhoto.alt || `${room.room_type} Suite at LuxeStay`}
-              className="room-details-hero-img"
-            />
-          </picture>
-        )}
+        </picture>
 
         <div className="room-details-hero-overlay" />
 
@@ -305,20 +329,28 @@ export default function RoomDetails() {
           <GoldDivider />
 
           {/* Gallery Thumbnails (below hero) */}
-          {images.length > 1 && (
+          {galleryItems.length > 1 && (
             <div className="room-thumbnails-row" role="region" aria-label="Photo Thumbnails">
-              {images.map((img, idx) => (
+              {galleryItems.map((item, idx) => (
                 <button
                   key={idx}
                   ref={(el) => (thumbnailsRef.current[idx] = el)}
                   type="button"
                   className={`room-thumbnail-btn ${idx === activeImgIndex ? 'is-active' : ''}`}
                   onClick={() => setActiveImgIndex(idx)}
-                  onKeyDown={(e) => handleThumbKeyDown(e, idx, images.length)}
-                  aria-label={`View photo ${idx + 1} of ${images.length}`}
+                  onKeyDown={(e) => handleThumbKeyDown(e, idx, galleryItems.length)}
+                  aria-label={`View photo ${idx + 1} of ${galleryItems.length}`}
                   aria-current={idx === activeImgIndex}
                 >
-                  <img src={img} alt={`Thumbnail ${idx + 1}`} loading="lazy" />
+                  <img
+                    src={item.thumb}
+                    alt={`Thumbnail ${idx + 1}`}
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = fallbackPhoto.cardJpg;
+                    }}
+                  />
                 </button>
               ))}
             </div>

@@ -160,9 +160,12 @@ async function seedRooms() {
   }
 
   // 5. Insert rooms
-  for (const r of ROOMS_DATA) {
-    const imagePath = `/uploads/rooms/${r.image_name}`;
-    const imagesArray = JSON.stringify([imagePath]);
+  for (let idx = 0; idx < ROOMS_DATA.length; idx++) {
+    const r = ROOMS_DATA[idx];
+    const isEven = idx % 2 === 1;
+    const primary = isEven ? '/site/hero-2-800.webp' : '/site/hero-1-800.webp';
+    const secondary = isEven ? '/site/hero-1-800.webp' : '/site/hero-2-800.webp';
+    const imagesArray = JSON.stringify([primary, secondary]);
     const amenitiesJson = JSON.stringify(r.amenities);
 
     await pool.query(
@@ -181,7 +184,7 @@ async function seedRooms() {
         r.view_label,
         amenitiesJson,
         imagesArray,
-        imagePath,
+        primary,
         r.description,
         r.status,
       ]
