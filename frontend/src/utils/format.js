@@ -90,3 +90,13 @@ export function todayISO(timeZone = 'Asia/Colombo') {
   const day = parts.find((p) => p.type === 'day')?.value;
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * Returns the default reporting date range: 'this month' (1st of current month up to today).
+ */
+export function getDefaultRange() {
+  const today = todayISO();
+  const [y, m] = today.split('-').map(Number);
+  const start = `${y}-${String(m).padStart(2, '0')}-01`;
+  return { from: start, to: today };
+}
